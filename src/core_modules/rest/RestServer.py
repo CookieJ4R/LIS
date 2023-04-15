@@ -17,7 +17,8 @@ class RestServer:
     """
 
     def __init__(self):
-        self.server = web.Application([(r'/.*', RestOmniRequestHandler, {"rest_server": self})])
+        self.server = web.Application([(r'/.*', RestOmniRequestHandler,
+                                        {"request_handle_callable": self.handle_request})])
         self.endpoint_map = {
             REST_METHOD_GET: {},
             REST_METHOD_POST: {},
