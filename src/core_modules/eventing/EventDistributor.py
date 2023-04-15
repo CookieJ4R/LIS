@@ -1,6 +1,5 @@
 import asyncio
 
-from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 
 
@@ -15,17 +14,18 @@ class EventDistributor(EventReceiver):
         self.event_distribution_map = {}
         super().__init__()
 
-    def register_for_events(self, event_receiver: EventReceiver, events: list[type[BaseEvent]]):
+    def register_event_receivers(self, event_receivers: list[EventReceiver]):
         """
         Method to register an event_receiver for a list of event types.
-        :param event_receiver: The EventReceiver to register.
-        :param events: List of Event types to register.
+        :param event_receivers: The EventReceivers to register.
         """
-        for event in events:
-            if event in self.event_distribution_map:
-                self.event_distribution_map[event] = self.event_distribution_map[event].append(event_receiver)
-            else:
-                self.event_distribution_map[event] = [event_receiver]
+        for ev_receiver in event_receivers:
+            events = ev_receiver.fetch_events_to_register()
+            for event in events:
+                if event in self.event_distribution_map:
+                    self.event_distribution_map[event] = self.event_distribution_map[event].append(ev_receiver)
+                else:
+                    self.event_distribution_map[event] = [ev_receiver]
 
     async def _handle_events_task(self):
         """
@@ -36,9 +36,6 @@ class EventDistributor(EventReceiver):
         """
         while True:
             event = await self._event_queue.get()
-            print(event)
-            print(type(event))
-            print(self.event_distribution_map)
             if type(event) in self.event_distribution_map:
                 receivers = self.event_distribution_map[type(event)]
                 for r in receivers:

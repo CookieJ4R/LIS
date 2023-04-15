@@ -24,8 +24,11 @@ async def main():
     """
     load_dotenv("lis.env")
     event_distributor = EventDistributor()
+
     rest_server = RestServer()
-    rest_server.register_apis([PingApi()])
+    rest_server.register_apis([
+        PingApi(),
+    ])
     rest_server.start_server(os.getenv("SERVER_IP"), int(os.getenv("SERVER_PORT")))
 
     await never_ending_function()

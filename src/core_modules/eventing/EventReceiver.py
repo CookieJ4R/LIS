@@ -14,6 +14,14 @@ class EventReceiver:
         # schedule _handle_events_task for execution
         asyncio.create_task(self._handle_events_task())
 
+    def fetch_events_to_register(self) -> list[type[BaseEvent]]:
+        """
+        Method to collect Events this EventReceiver is interested in.
+        Called by the EventDistributor during registration.
+        :return: A list containing all Events the EventReceiver wants to receive.
+        """
+        return []
+
     async def put_event(self, event: BaseEvent):
         """
         Method that enqueues the event to the internal _event_queue
