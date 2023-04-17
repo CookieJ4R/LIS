@@ -27,13 +27,13 @@ async def main():
     storage = StorageManager("lis_data.toml")
     event_distributor = EventDistributor()
     event_distributor.register_event_receivers([
-        HueInteractor(storage)
+        HueInteractor(storage, event_distributor.put_internal)
     ])
 
     rest_server = RestServer()
     rest_server.register_apis([
         PingApi(),
-        HueApi(event_distributor.put_event)
+        HueApi(event_distributor.put_internal)
     ])
     rest_server.start_server(storage.get(FIELD_SERVER_IP, section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),
                              storage.get(FIELD_SERVER_PORT, section=SECTION_HEADER_SERVER, fallback=5000))

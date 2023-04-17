@@ -22,7 +22,7 @@ class EventReceiver:
         """
         return []
 
-    async def put_event(self, event: BaseEvent):
+    async def put_internal(self, event: BaseEvent):
         """
         Method that enqueues the event to the internal _event_queue
         :param event: The event to add to the event queue.

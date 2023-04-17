@@ -1,3 +1,5 @@
+from typing import Callable
+
 import aiohttp
 
 from core_modules.eventing.BaseEvent import BaseEvent
@@ -6,6 +8,7 @@ from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
 from core_modules.storage.StorageManager import StorageManager, FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE, \
     FIELD_HUE_CLIENT_KEY
 from feature_modules.hue_integration.HueApi import HueLampSetStateEvent
+from feature_modules.hue_integration.HueEvents import HueGetLampsEvent, HueGetLampsResponseEvent
 from feature_modules.hue_integration.HueLamp import HueLamp
 
 
@@ -14,17 +17,21 @@ class HueInteractor(EventReceiver):
     Class responsible for interfacing with the Hue-Bridge REST Api.
     """
 
-    def __init__(self, storage: StorageManager):
+    def __init__(self, storage: StorageManager, put_event: Callable):
         super().__init__()
+        self.put_event = put_event
         self.hue_bridge_api = storage.get(FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE)
         self.hue_client_key = storage.get(FIELD_HUE_CLIENT_KEY, SECTION_HEADER_HUE)
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
-        return [HueLampSetStateEvent]
+        return [HueLampSetStateEvent, HueGetLampsEvent]
 
     async def handle_specific_event(self, event: BaseEvent):
         if isinstance(event, HueLampSetStateEvent):
             await self.set_state_of_lamp(event.lamp_id, event.on)
+        elif isinstance(event, HueGetLampsEvent):
+            lamps = await self.get_lamps()
+            await self.put_event(HueGetLampsResponseEvent(lamps))
 
     async def _send_request(self, method, endpoint, data=None):
         """
