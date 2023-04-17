@@ -6,7 +6,8 @@ import asyncio
 from core_modules.eventing.EventDistributor import EventDistributor
 from core_modules.rest.PingApi import PingApi
 from core_modules.rest.RestServer import RestServer
-from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_SERVER
+from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_SERVER, FIELD_SERVER_IP, \
+    FIELD_SERVER_PORT
 
 
 async def never_ending_function():
@@ -28,8 +29,8 @@ async def main():
     rest_server.register_apis([
         PingApi(),
     ])
-    rest_server.start_server(storage.get("SERVER_IP", section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),
-                             storage.get("SERVER_PORT", section=SECTION_HEADER_SERVER, fallback=5000))
+    rest_server.start_server(storage.get(FIELD_SERVER_IP, section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),
+                             storage.get(FIELD_SERVER_PORT, section=SECTION_HEADER_SERVER, fallback=5000))
 
     await never_ending_function()
     # never reached!
