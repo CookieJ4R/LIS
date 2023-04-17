@@ -2,12 +2,12 @@
 Main file for running this LIS-System
 """
 import asyncio
-import os
-from dotenv import load_dotenv
 
 from core_modules.eventing.EventDistributor import EventDistributor
 from core_modules.rest.PingApi import PingApi
 from core_modules.rest.RestServer import RestServer
+from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_SERVER, FIELD_SERVER_IP, \
+    FIELD_SERVER_PORT
 from feature_modules.hue_integration.HueApi import HueApi
 from feature_modules.hue_integration.HueInteractor import HueInteractor
 
@@ -24,11 +24,10 @@ async def main():
     """
     Main Coroutine that gets run on the event loop.
     """
-    load_dotenv("lis.env")
-
+    storage = StorageManager("lis_data.toml")
     event_distributor = EventDistributor()
     event_distributor.register_event_receivers([
-        HueInteractor()
+        HueInteractor(storage)
     ])
 
     rest_server = RestServer()
@@ -36,7 +35,8 @@ async def main():
         PingApi(),
         HueApi(event_distributor.put_event)
     ])
-    rest_server.start_server(os.getenv("SERVER_IP"), int(os.getenv("SERVER_PORT")))
+    rest_server.start_server(storage.get(FIELD_SERVER_IP, section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),
+                             storage.get(FIELD_SERVER_PORT, section=SECTION_HEADER_SERVER, fallback=5000))
 
     await never_ending_function()
     # never reached!

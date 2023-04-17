@@ -1,10 +1,10 @@
-import os
-
 import aiohttp
 
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
+from core_modules.storage.StorageManager import StorageManager, FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE, \
+    FIELD_HUE_CLIENT_KEY
 from feature_modules.hue_integration.HueApi import HueLampSetStateEvent
 
 
@@ -13,10 +13,10 @@ class HueInteractor(EventReceiver):
     Class responsible for interfacing with the Hue-Bridge REST Api.
     """
 
-    def __init__(self):
+    def __init__(self, storage: StorageManager):
         super().__init__()
-        self.hue_bridge_api = os.getenv("HUE_BRIDGE_IP")
-        self.hue_client_key = os.getenv("HUE_CLIENT_KEY")
+        self.hue_bridge_api = storage.get(FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE)
+        self.hue_client_key = storage.get(FIELD_HUE_CLIENT_KEY, SECTION_HEADER_HUE)
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
         return [HueLampSetStateEvent]
