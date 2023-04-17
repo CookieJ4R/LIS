@@ -15,9 +15,9 @@ class HueApi(AbstractBaseApi):
         self.put_event = put_event
 
     def register_endpoints(self, register_endpoint: Callable):
-        register_endpoint("/hue/state", REST_METHOD_PUT, self._toggle_desk_lamp)
+        register_endpoint("/hue/state", REST_METHOD_PUT, self._toggle_lamp_state)
 
-    async def _toggle_desk_lamp(self, args):
+    async def _toggle_lamp_state(self, args):
         """
         Endpoint handler to set the state of a specific lamp
         :param args: The args passed to the request.
