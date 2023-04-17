@@ -1,6 +1,8 @@
 import asyncio
 
 from core_modules.eventing.EventReceiver import EventReceiver
+from core_modules.eventing.SystemEvents import SystemEvent, RegisterResponseReceiverEvent, \
+    UnregisterResponseReceiverEvent
 
 
 class EventDistributor(EventReceiver):
@@ -23,9 +25,30 @@ class EventDistributor(EventReceiver):
             events = ev_receiver.fetch_events_to_register()
             for event in events:
                 if event in self.event_distribution_map:
-                    self.event_distribution_map[event] = self.event_distribution_map[event].append(ev_receiver)
+                    self.event_distribution_map[event].append(ev_receiver)
                 else:
                     self.event_distribution_map[event] = [ev_receiver]
+
+    def unregister_event_receivers(self, event_receivers: list[EventReceiver]):
+        """
+        Method to remove a list of event receivers from all events. Mostly used for ResponseReceivers.
+        :param event_receivers: The EventReceivers to unregister.
+        """
+        for event_receiver in event_receivers:
+            for event in self.event_distribution_map:
+                if event_receiver in self.event_distribution_map[event]:
+                    self.event_distribution_map[event].remove(event_receiver)
+
+    async def _handle_system_event(self, event: SystemEvent):
+        """
+        Method to handle SystemEvents. These are special events that influence the System and the EventDistributor as
+        a whole and should not be forwarded to other receivers.
+        :param event: The SystemEvent to handle.
+        """
+        if isinstance(event, RegisterResponseReceiverEvent):
+            self.register_event_receivers([event.response_receiver])
+        elif isinstance(event, UnregisterResponseReceiverEvent):
+            self.unregister_event_receivers([event.response_receiver])
 
     async def _handle_events_task(self):
         """
@@ -36,9 +59,12 @@ class EventDistributor(EventReceiver):
         """
         while True:
             event = await self._event_queue.get()
-            if type(event) in self.event_distribution_map:
+            if isinstance(event, SystemEvent):
+                await self._handle_system_event(event)
+            elif type(event) in self.event_distribution_map:
                 receivers = self.event_distribution_map[type(event)]
                 for r in receivers:
-                    await r.put_event(event)
+                    print("forwarding event " + str(event) + " to " + str(r))
+                    await r.put_internal(event)
             else:
-                print("received event " + str(event) + " but no event receivers where registered")
+                print("received event " + str(event) + " but no event receivers were registered")
