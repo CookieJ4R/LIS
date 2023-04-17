@@ -6,6 +6,7 @@ from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
 from core_modules.storage.StorageManager import StorageManager, FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE, \
     FIELD_HUE_CLIENT_KEY
 from feature_modules.hue_integration.HueApi import HueLampSetStateEvent
+from feature_modules.hue_integration.HueLamp import HueLamp
 
 
 class HueInteractor(EventReceiver):
@@ -36,10 +37,12 @@ class HueInteractor(EventReceiver):
                                          headers={"hue-application-key": self.hue_client_key,
                                                   "Content-Type": "application/json"}) as session:
             if method == REST_METHOD_PUT:
-                await session.put('https://' + self.hue_bridge_api + "/clip/v2/" + endpoint,
-                                  data=data)
+                async with await session.put('https://' + self.hue_bridge_api + "/clip/v2/" + endpoint,
+                                             data=data) as response:
+                    return response.status, await response.json()
             elif method == REST_METHOD_GET:
-                await session.get('https://' + self.hue_bridge_api + "/clip/v2/" + endpoint)
+                async with await session.get('https://' + self.hue_bridge_api + "/clip/v2/" + endpoint) as response:
+                    return response.status, await response.json()
 
     async def set_state_of_lamp(self, lamp_id: str, on: bool):
         """
@@ -49,3 +52,32 @@ class HueInteractor(EventReceiver):
         """
         await self._send_request(REST_METHOD_PUT, "resource/light/" + lamp_id,
                                  b'{"on": {"on": true}}' if on else b'{"on": {"on": false}}')
+
+    async def get_lamps(self) -> list[HueLamp]:
+        """
+        Method for getting all lights registered with the hue bridge. Will ignore other devices like switches
+        or the bridge itself.
+        :return: List containing a HueLamp object for each connected lamp.
+        Empty list if no lamp is connected or an error occurred.
+        """
+        status, resp = await self._send_request(REST_METHOD_GET, "resource/device")
+        lamps = []
+        if status == 200:
+            devices = resp["data"]
+            for device in devices:
+                light_service = self._get_light_service_of_device(device["services"])
+                if light_service is not None:
+                    lamps.append(HueLamp(device["metadata"]["name"], light_service["rid"]))
+        return lamps
+
+    @staticmethod
+    def _get_light_service_of_device(services_list: list):
+        """
+        Helper method to discern which devices are lamps.
+        :param services_list: service list of a hue device.
+        :return: The light service if present {"rid": xxx, "rtype": light}, None otherwise
+        """
+        for service in services_list:
+            if service["rtype"] == "light":
+                return service
+        return None
