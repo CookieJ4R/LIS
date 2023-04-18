@@ -4,6 +4,7 @@ import aiohttp
 
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
+from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
 from core_modules.storage.StorageManager import StorageManager, FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE, \
     FIELD_HUE_CLIENT_KEY
@@ -17,6 +18,8 @@ class HueInteractor(EventReceiver):
     Class responsible for interfacing with the Hue-Bridge REST Api.
     """
 
+    log = get_logger(__name__)
+
     def __init__(self, storage: StorageManager, put_event: Callable):
         super().__init__()
         self.put_event = put_event
@@ -27,6 +30,7 @@ class HueInteractor(EventReceiver):
         return [HueLampSetStateEvent, HueGetLampsEvent]
 
     async def handle_specific_event(self, event: BaseEvent):
+        self.log.info("Handling " + str(event))
         if isinstance(event, HueLampSetStateEvent):
             await self.set_state_of_lamp(event.lamp_id, event.on)
         elif isinstance(event, HueGetLampsEvent):
@@ -40,6 +44,7 @@ class HueInteractor(EventReceiver):
         :param endpoint: The endpoint that will be appended to the main url (e.g. resource/light/<ID>)
         :param data: The data to send (used for PUT requests)
         """
+        self.log.debug("Sending " + method + " request to Hue-Bridge endpoint " + str(endpoint) + " with " + str(data))
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
                                          headers={"hue-application-key": self.hue_client_key,
                                                   "Content-Type": "application/json"}) as session:
@@ -57,6 +62,7 @@ class HueInteractor(EventReceiver):
         :param lamp_id: The id of the lamp to change the state off.
         :param on: The value to set the state to (true = on, false = off)
         """
+        self.log.info("Setting state of lamp " + lamp_id + " to " + str(on) + " via Hue-Bridge REST-Api")
         await self._send_request(REST_METHOD_PUT, "resource/light/" + lamp_id,
                                  b'{"on": {"on": true}}' if on else b'{"on": {"on": false}}')
 
@@ -67,6 +73,7 @@ class HueInteractor(EventReceiver):
         :return: List containing a HueLamp object for each connected lamp.
         Empty list if no lamp is connected or an error occurred.
         """
+        self.log.info("Getting connected lights via Hue-Bridge REST-Api")
         status, resp = await self._send_request(REST_METHOD_GET, "resource/device")
         lamps = []
         if status == 200:

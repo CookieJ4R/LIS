@@ -1,15 +1,18 @@
 import asyncio
 
 from core_modules.eventing.BaseEvent import BaseEvent
+from core_modules.logging.lis_logging import get_logger
 
 
 class EventReceiver:
     """
     Base class for classes that need to receive events distributed by the central EventDistributor.
     """
-    _event_queue = asyncio.Queue()
+
+    log = get_logger(__name__)
 
     def __init__(self):
+        self.log.info("Starting...")
         self._event_queue = asyncio.Queue()
         # schedule _handle_events_task for execution
         asyncio.create_task(self._handle_events_task())
@@ -27,6 +30,7 @@ class EventReceiver:
         Method that enqueues the event to the internal _event_queue
         :param event: The event to add to the event queue.
         """
+        self.log.debug("Adding " + str(type(event)) + " to internal event queue.")
         await self._event_queue.put(event)
 
     async def _handle_events_task(self):

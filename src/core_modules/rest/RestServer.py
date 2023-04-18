@@ -2,6 +2,7 @@ from typing import Coroutine
 
 from tornado import web
 
+from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.AbstractBaseApi import AbstractBaseApi
 from core_modules.rest.RestOmniRequestHandler import RestOmniRequestHandler
 
@@ -15,6 +16,8 @@ class RestServer:
     """
     Class responsible for handling the http requests and starting the tornado web server
     """
+
+    log = get_logger(__name__)
 
     def __init__(self):
         self.server = web.Application([(r'/.*', RestOmniRequestHandler,
@@ -32,6 +35,7 @@ class RestServer:
         :param list[AbstractBaseApi] apis_to_register: The api objects to register.
         """
         for api in apis_to_register:
+            self.log.debug("Registering " + str(api) + " with RestServer")
             api.register_endpoints(self.register_endpoint)
 
     def register_endpoint(self, endpoint: str, method: str, handler: Coroutine):
@@ -45,6 +49,7 @@ class RestServer:
         :raises ValueError: When an api tries to register a handler for a non-supported method.
         """
         if method not in self.endpoint_map:
+            self.log.error("API tried to register an endpoint for a non defined endpoint")
             raise ValueError("API tried to register an endpoint for a non defined endpoint")
         self.endpoint_map[method][endpoint] = handler
 
@@ -54,6 +59,7 @@ class RestServer:
         :param host: The host ip of the server.
         :param port: The port the webserver should run on.
         """
+        self.log.info("Starting RestServer on http://" + host + ":" + str(port))
         self.server.listen(port, host)
 
     async def handle_request(self, path, args, method):
@@ -72,7 +78,9 @@ class RestServer:
             if self._is_endpoint_path_registered_for_method(path, method):
                 return await registered_api_endpoints[path](args)
             elif self._is_endpoint_registered_for_different_method(path, method):
+                self.log.warning("Request to handle has un-allowed request method")
                 return 405, ""
+        self.log.warning("Request to handle was sent to an unknown endpoint (" + path + ")")
         return 404, ""
 
     def _is_endpoint_path_registered_for_method(self, endpoint_path: str, method: str):

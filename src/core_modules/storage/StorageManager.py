@@ -4,6 +4,8 @@ from tomllib import TOMLDecodeError
 
 import tomli_w
 
+from core_modules.logging.lis_logging import get_logger
+
 SECTION_HEADER_SERVER = "SERVER"
 SECTION_HEADER_HUE = "PHILIPPS_HUE"
 
@@ -21,11 +23,14 @@ class StorageManager:
     to use and manipulate the loaded data (get, add, update, remove)
     """
 
+    log = get_logger(__name__)
+
     def __init__(self, path: str):
         """
         Initializes the StorageManager
         :param path: The path to the .toml file to use
         """
+        self.log.info("Starting...")
         self.data_file_path = path
         self._read_toml_file()
 
@@ -42,7 +47,7 @@ class StorageManager:
             try:
                 self._storage = tomllib.load(f)
             except TOMLDecodeError as e:
-                print("lis_data.toml is not a valid toml file: " + str(e))
+                self.log.error(self.data_file_path + " is not a valid toml file: " + str(e))
                 exit(-1)
 
     def _write_toml_file(self) -> None:
@@ -76,6 +81,7 @@ class StorageManager:
         :param section: The section in which the field will be inserted into.
         :param overwrite_if_exists: Whether to overwrite and existing field if it already exists.
         """
+        self.log.debug("Adding " + str(value) + " to field " + field + " in section " + str(section))
         if section is None:
             storage_area = self._storage
         else:
@@ -99,6 +105,7 @@ class StorageManager:
         :param field: The field to update.
         :param section: The section to update
         """
+        self.log.debug("Updating " + str(value) + " to field " + field + " in section " + str(section))
         if section is None and field in self._storage:
             self._storage[field] = value
             self._write_toml_file()
@@ -107,7 +114,7 @@ class StorageManager:
             self._storage[section][field] = value
             self._write_toml_file()
             return
-        print("Failed to update because section or field does not exist!")
+        self.log.warning("Failed to update because section or field does not exist!")
 
     def remove(self, field: str, section: str = None) -> None:
         """
@@ -115,6 +122,7 @@ class StorageManager:
         :param field: The field to remove
         :param section: The section the field should be removed in.
         """
+        self.log.debug("Removing field " + field + " in section " + str(section))
         if section is None and field in self._storage:
             self._storage[field].pop()
             self._write_toml_file()
@@ -123,4 +131,4 @@ class StorageManager:
             self._storage[section][field].pop()
             self._write_toml_file()
             return
-        print("Failed to remove because section or field does not exist!")
+        self.log.warning("Failed to remove because section or field does not exist!")

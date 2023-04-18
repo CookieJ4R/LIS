@@ -2,8 +2,8 @@
 Main file for running this LIS-System
 """
 import asyncio
-
 from core_modules.eventing.EventDistributor import EventDistributor
+from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.PingApi import PingApi
 from core_modules.rest.RestServer import RestServer
 from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_SERVER, FIELD_SERVER_IP, \
@@ -11,11 +11,17 @@ from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_S
 from feature_modules.hue_integration.HueApi import HueApi
 from feature_modules.hue_integration.HueInteractor import HueInteractor
 
+INIT_CONFIG_LOGGING_SECTION = "LOGGING"
+INIT_CONFIG_LOGGING_LOG_LEVEL = "LOG_LEVEL"
+
+log = get_logger("lis_main")
+
 
 async def never_ending_function():
     """
     Never ending function that keeps the main thread and event loop running.
     """
+    log.info("Starting infinite async loop...")
     while True:
         await asyncio.sleep(10)
 
@@ -25,6 +31,7 @@ async def main():
     Main Coroutine that gets run on the event loop.
     """
     storage = StorageManager("lis_data.toml")
+
     event_distributor = EventDistributor()
     event_distributor.register_event_receivers([
         HueInteractor(storage, event_distributor.put_internal)
@@ -43,4 +50,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    log.info("Starting LIS...")
     asyncio.run(main())

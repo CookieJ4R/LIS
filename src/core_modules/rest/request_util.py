@@ -1,6 +1,9 @@
 """
 File containing helper methods to interact with the argument object passed to the api classes.
 """
+from core_modules.logging.lis_logging import get_logger
+
+log = get_logger(__name__)
 
 
 def get_string_from_args_obj(arg_name: str, args_obj, default: str = None):
@@ -29,6 +32,7 @@ def get_int_from_args_obj(arg_name: str, args_obj, default: int = None):
         try:
             int(_decode_value(args_obj[arg_name][0]))
         except ValueError:
+            log.error(str(args_obj[arg_name][0] + " is not an int!"))
             raise
     return default
 
@@ -58,5 +62,5 @@ def _decode_value(value: bytes) -> [None, str]:
     try:
         return value.decode("utf-8")
     except UnicodeDecodeError:
-        print(str(value) + " could not be decoded!")
+        log.error(str(value) + " could not be decoded!")
         raise
