@@ -1,4 +1,6 @@
 from typing import Callable
+
+from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.BaseRequestHandler import BaseRequestHandler
 
 
@@ -9,6 +11,7 @@ class RestOmniRequestHandler(BaseRequestHandler):
     RestServer. Therefore, tornado only takes care of asynchronously receiving the request and forwarding the result
     of the registered endpoint handler in the specific apis.
     """
+    log = get_logger(__name__)
     request_handle_callable: Callable = None
 
     def initialize(self, request_handle_callable: Callable):
@@ -44,6 +47,7 @@ class RestOmniRequestHandler(BaseRequestHandler):
         method = self.request.method
         path = self.request.path
         parameters = self.request.arguments
+        self.log.debug("Received " + method + " request on endpoint " + path)
         status, response = await self.request_handle_callable(path, parameters, method)
         self.set_status(status)
         self.write(response)

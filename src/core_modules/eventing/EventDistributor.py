@@ -1,8 +1,7 @@
-import asyncio
-
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.eventing.SystemEvents import SystemEvent, RegisterResponseReceiverEvent, \
     UnregisterResponseReceiverEvent
+from core_modules.logging.lis_logging import get_logger
 
 
 class EventDistributor(EventReceiver):
@@ -11,8 +10,9 @@ class EventDistributor(EventReceiver):
     distributing the arriving events to all registered handlers.
     """
 
+    log = get_logger(__name__)
+
     def __init__(self):
-        self._event_queue = asyncio.Queue()
         self.event_distribution_map = {}
         super().__init__()
 
@@ -24,6 +24,7 @@ class EventDistributor(EventReceiver):
         for ev_receiver in event_receivers:
             events = ev_receiver.fetch_events_to_register()
             for event in events:
+                self.log.debug("Registering " + ev_receiver.__class__.__name__ + " for event " + str(event))
                 if event in self.event_distribution_map:
                     self.event_distribution_map[event].append(ev_receiver)
                 else:
@@ -37,6 +38,7 @@ class EventDistributor(EventReceiver):
         for event_receiver in event_receivers:
             for event in self.event_distribution_map:
                 if event_receiver in self.event_distribution_map[event]:
+                    self.log.debug("Unregistering " + event_receiver.__class__.__name__ + " for event " + str(event))
                     self.event_distribution_map[event].remove(event_receiver)
 
     async def _handle_system_event(self, event: SystemEvent):
@@ -45,6 +47,7 @@ class EventDistributor(EventReceiver):
         a whole and should not be forwarded to other receivers.
         :param event: The SystemEvent to handle.
         """
+        self.log.debug("Handling SystemEvent " + str(event))
         if isinstance(event, RegisterResponseReceiverEvent):
             self.register_event_receivers([event.response_receiver])
         elif isinstance(event, UnregisterResponseReceiverEvent):
@@ -63,8 +66,8 @@ class EventDistributor(EventReceiver):
                 await self._handle_system_event(event)
             elif type(event) in self.event_distribution_map:
                 receivers = self.event_distribution_map[type(event)]
-                for r in receivers:
-                    print("forwarding event " + str(event) + " to " + str(r))
-                    await r.put_internal(event)
+                for recv in receivers:
+                    self.log.info("Forwarding event " + str(event) + " to " + str(recv))
+                    await recv.put_internal(event)
             else:
-                print("received event " + str(event) + " but no event receivers were registered")
+                self.log.warning("Received event " + str(event) + " but no event receivers were registered")

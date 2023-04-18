@@ -1,6 +1,7 @@
 from typing import Callable
 
 from core_modules.eventing.ResponseEventReceiver import ResponseEventReceiver
+from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.AbstractBaseApi import AbstractBaseApi
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
 from core_modules.rest.request_util import get_bool_from_args_obj, get_string_from_args_obj
@@ -12,10 +13,13 @@ class HueApi(AbstractBaseApi):
     API for all commands related to the philipps hue integration
     """
 
+    log = get_logger(__name__)
+
     def __init__(self, put_event):
         self.put_event = put_event
 
     def register_endpoints(self, register_endpoint: Callable):
+        self.log.debug("Registering api endpoints...")
         register_endpoint("/hue/state", REST_METHOD_PUT, self._toggle_lamp_state)
         register_endpoint("/hue/lights", REST_METHOD_GET, self._get_connected_lamps)
 
@@ -28,6 +32,7 @@ class HueApi(AbstractBaseApi):
         """
         lamp_id = get_string_from_args_obj("id", args)
         on = get_bool_from_args_obj("on", args)
+        self.log.info("Received request - setting state of lamp " + str(lamp_id) + " to " + str(on))
         await self.put_event(HueLampSetStateEvent(lamp_id, on))
         return 200, ""
 
@@ -38,6 +43,7 @@ class HueApi(AbstractBaseApi):
         :param _args: The args passed to the request.
         :return: Status code 200, JSON containing all registered lamps
         """
+        self.log.info("Received request - getting connected lamps")
         response_receiver = ResponseEventReceiver(self.put_event, [HueGetLampsResponseEvent])
         await response_receiver.start()
         await self.put_event(HueGetLampsEvent())
