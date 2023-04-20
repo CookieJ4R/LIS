@@ -1,6 +1,6 @@
 from core_modules.eventing.EventReceiver import EventReceiver
-from core_modules.eventing.SystemEvents import SystemEvent, RegisterResponseReceiverEvent, \
-    UnregisterResponseReceiverEvent
+from core_modules.eventing.SystemEvents import SystemEvent, RegisterTempReceiverEvent, \
+    UnregisterTempReceiverEvent
 from core_modules.logging.lis_logging import get_logger
 
 
@@ -32,14 +32,19 @@ class EventDistributor(EventReceiver):
 
     def unregister_event_receivers(self, event_receivers: list[EventReceiver]):
         """
-        Method to remove a list of event receivers from all events. Mostly used for ResponseReceivers.
+        Method to remove a list of event receivers from all events. Mostly used for TemporaryEventReceiver.
         :param event_receivers: The EventReceivers to unregister.
         """
+        modified_events = []
         for event_receiver in event_receivers:
             for event in self.event_distribution_map:
                 if event_receiver in self.event_distribution_map[event]:
-                    self.log.debug("Unregistering " + event_receiver.__class__.__name__ + " for event " + str(event))
+                    self.log.info("Unregistering " + event_receiver.__class__.__name__ + " for event " + str(event))
                     self.event_distribution_map[event].remove(event_receiver)
+                    modified_events.append(event)
+        for modified_event in modified_events:
+            if len(self.event_distribution_map[modified_event]) == 0:
+                self.event_distribution_map.pop(modified_event)
 
     async def _handle_system_event(self, event: SystemEvent):
         """
@@ -48,10 +53,10 @@ class EventDistributor(EventReceiver):
         :param event: The SystemEvent to handle.
         """
         self.log.debug("Handling SystemEvent " + str(event))
-        if isinstance(event, RegisterResponseReceiverEvent):
-            self.register_event_receivers([event.response_receiver])
-        elif isinstance(event, UnregisterResponseReceiverEvent):
-            self.unregister_event_receivers([event.response_receiver])
+        if isinstance(event, RegisterTempReceiverEvent):
+            self.register_event_receivers([event.event_receiver])
+        elif isinstance(event, UnregisterTempReceiverEvent):
+            self.unregister_event_receivers([event.event_receiver])
 
     async def _handle_events_task(self):
         """

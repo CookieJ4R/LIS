@@ -1,10 +1,11 @@
-from typing import Coroutine
+from typing import Coroutine, Callable
 
 from tornado import web
 
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.AbstractBaseApi import AbstractBaseApi
 from core_modules.rest.RestOmniRequestHandler import RestOmniRequestHandler
+from core_modules.rest.SSERequestHandler import SSERequestHandler
 
 REST_METHOD_GET = "GET"
 REST_METHOD_POST = "POST"
@@ -19,8 +20,9 @@ class RestServer:
 
     log = get_logger(__name__)
 
-    def __init__(self):
-        self.server = web.Application([(r'/.*', RestOmniRequestHandler,
+    def __init__(self, put_event: Callable):
+        self.server = web.Application([(r'/sse', SSERequestHandler, {"put_event": put_event}),
+                                       (r'/.*', RestOmniRequestHandler,
                                         {"request_handle_callable": self.handle_request})])
         self.endpoint_map = {
             REST_METHOD_GET: {},

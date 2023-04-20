@@ -1,6 +1,6 @@
 from typing import Callable
 
-from core_modules.eventing.ResponseEventReceiver import ResponseEventReceiver
+from core_modules.eventing.TemporaryEventReceiver import TemporaryEventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.AbstractBaseApi import AbstractBaseApi
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
@@ -44,8 +44,8 @@ class HueApi(AbstractBaseApi):
         :return: Status code 200, JSON containing all registered lamps
         """
         self.log.info("Received request - getting connected lamps")
-        response_receiver = ResponseEventReceiver(self.put_event, [HueGetLampsResponseEvent])
+        response_receiver = TemporaryEventReceiver(self.put_event, [HueGetLampsResponseEvent])
         await response_receiver.start()
         await self.put_event(HueGetLampsEvent())
-        event: HueGetLampsResponseEvent = await response_receiver.wait_for_response_event()
+        event: HueGetLampsResponseEvent = await response_receiver.wait_for_event()
         return 200, event.get_lamp_json()

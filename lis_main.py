@@ -37,7 +37,7 @@ async def main():
         HueInteractor(storage, event_distributor.put_internal)
     ])
 
-    rest_server = RestServer()
+    rest_server = RestServer(event_distributor.put_internal)
     rest_server.register_apis([
         PingApi(),
         HueApi(event_distributor.put_internal)
