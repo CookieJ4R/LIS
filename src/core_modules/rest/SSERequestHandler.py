@@ -10,7 +10,8 @@ from core_modules.rest.RestServerEvents import SSEDataEvent
 
 
 class SSERequestHandler(BaseRequestHandler):
-    log = get_logger(__name__, "DEBUG")
+
+    log = get_logger(__name__)
     put_event: Callable
     _sse_event_receiver: TemporaryEventReceiver
 
