@@ -15,7 +15,7 @@ def get_string_from_args_obj(arg_name: str, args_obj, default: str = None):
     :return: The argument as a str or the default value if it was not found.
     """
     if arg_name in args_obj:
-        return _decode_value(args_obj[arg_name][0])
+        return _decode_value(args_obj[arg_name])
     return default
 
 
@@ -30,9 +30,9 @@ def get_int_from_args_obj(arg_name: str, args_obj, default: int = None):
     """
     if arg_name in args_obj:
         try:
-            int(_decode_value(args_obj[arg_name][0]))
+            int(_decode_value(args_obj[arg_name]))
         except ValueError:
-            log.error(str(args_obj[arg_name][0] + " is not an int!"))
+            log.error(str(args_obj[arg_name] + " is not an int!"))
             raise
     return default
 
@@ -46,7 +46,7 @@ def get_bool_from_args_obj(arg_name: str, args_obj, default: bool = None):
     :return: The argument as a bool or the default value if it was not found.
     """
     if arg_name in args_obj:
-        val = (_decode_value(args_obj[arg_name][0])).lower()
+        val = (_decode_value(args_obj[arg_name])).lower()
         if val == "true" or val == "false":
             return val == "true"
     return default
@@ -64,3 +64,17 @@ def _decode_value(value: bytes) -> [None, str]:
     except UnicodeDecodeError:
         log.error(str(value) + " could not be decoded!")
         raise
+
+
+def remap_request_args(args: dict) -> dict:
+    """
+    The tornado framework parses the arguments of a request as lists in case an argument is used multiple times.
+    While this feature makes sense, it only complicates the usage of the values most of the time, so this method
+    remaps the argument dict so that only the first element in the list is used as the actual argument.
+    :param args: The arguments to remap
+    :return: The remapped dictionary containing the arguments of the request.
+    """
+    new_dict = {}
+    for key in args:
+        new_dict[key] = args[key][0]
+    return new_dict
