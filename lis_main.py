@@ -2,13 +2,19 @@
 Main file for running this LIS-System
 """
 import asyncio
+import datetime
+
 from core_modules.eventing.EventDistributor import EventDistributor
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.PingApi import PingApi
 from core_modules.rest.RestServer import RestServer
+from core_modules.scheduling.EventScheduler import EventScheduler
+from core_modules.scheduling.SchedulingApi import SchedulingApi
+from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
 from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_SERVER, FIELD_SERVER_IP, \
     FIELD_SERVER_PORT
 from feature_modules.hue_integration.HueApi import HueApi
+from feature_modules.hue_integration.HueEvents import HueLampSetStateEvent
 from feature_modules.hue_integration.HueInteractor import HueInteractor
 
 INIT_CONFIG_LOGGING_SECTION = "LOGGING"
@@ -33,14 +39,26 @@ async def main():
     storage = StorageManager("lis_data.toml")
 
     event_distributor = EventDistributor()
+
+    event_scheduler = EventScheduler(event_distributor.put_internal)
+    event_scheduler.start_scheduling_engine()
+
+    hue_interactor = HueInteractor(storage, event_distributor.put_internal)
+
     event_distributor.register_event_receivers([
-        HueInteractor(storage, event_distributor.put_internal)
+        event_scheduler,
+        hue_interactor
     ])
+
+    #await hue_interactor.put_event(ScheduleEventExecutionEvent(
+    #    datetime.datetime.now() + datetime.timedelta(minutes=1),
+    #    HueLampSetStateEvent("2671e599-510b-469a-b13b-50598263eafd", False)))
 
     rest_server = RestServer()
     rest_server.register_apis([
         PingApi(),
-        HueApi(event_distributor.put_internal)
+        HueApi(event_distributor.put_internal),
+        SchedulingApi(event_distributor.put_internal, event_distributor.get_registered_events)
     ])
     rest_server.start_server(storage.get(FIELD_SERVER_IP, section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),
                              storage.get(FIELD_SERVER_PORT, section=SECTION_HEADER_SERVER, fallback=5000))

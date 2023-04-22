@@ -1,3 +1,4 @@
+from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.eventing.SystemEvents import SystemEvent, RegisterResponseReceiverEvent, \
     UnregisterResponseReceiverEvent
@@ -15,6 +16,13 @@ class EventDistributor(EventReceiver):
     def __init__(self):
         self.event_distribution_map = {}
         super().__init__()
+
+    def get_registered_events(self) -> list[type[BaseEvent]]:
+        """
+        Get all events registered with the event distributor.
+        :return: all registered events as a list.
+        """
+        return list(self.event_distribution_map.keys())
 
     def register_event_receivers(self, event_receivers: list[EventReceiver]):
         """
