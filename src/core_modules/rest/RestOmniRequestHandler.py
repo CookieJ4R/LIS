@@ -2,6 +2,7 @@ from typing import Callable
 
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.BaseRequestHandler import BaseRequestHandler
+from core_modules.rest.request_util import remap_request_args
 
 
 class RestOmniRequestHandler(BaseRequestHandler):
@@ -46,7 +47,7 @@ class RestOmniRequestHandler(BaseRequestHandler):
         """
         method = self.request.method
         path = self.request.path
-        parameters = self.request.arguments
+        parameters = remap_request_args(self.request.arguments)
         self.log.debug("Received " + method + " request on endpoint " + path)
         status, response = await self.request_handle_callable(path, parameters, method)
         self.set_status(status)
