@@ -35,19 +35,20 @@ async def main():
 
     event_distributor = EventDistributor()
 
-    event_scheduler = EventScheduler(event_distributor.put_internal)
-    event_scheduler.start_scheduling_engine()
+    event_scheduler = EventScheduler(storage, event_distributor.put_internal)
 
     event_distributor.register_event_receivers([
         event_scheduler,
         HueInteractor(storage, event_distributor.put_internal)
     ])
 
+    event_scheduler.load_persistent_events(event_distributor.map_to_schedulable_event)
+
     rest_server = RestServer()
     rest_server.register_apis([
         PingApi(),
         HueApi(event_distributor.put_internal),
-        SchedulingApi(event_distributor.put_internal, event_distributor.get_registered_events)
+        SchedulingApi(event_distributor.put_internal, event_distributor.map_to_schedulable_event)
     ])
     rest_server.start_server(storage.get(FIELD_SERVER_IP, section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),
                              storage.get(FIELD_SERVER_PORT, section=SECTION_HEADER_SERVER, fallback=5000))
