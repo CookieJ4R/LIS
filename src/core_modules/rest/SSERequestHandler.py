@@ -10,6 +10,10 @@ from core_modules.rest.RestServerEvents import SSEDataEvent
 
 
 class SSERequestHandler(BaseRequestHandler):
+    """
+    Request handler for SSE (/sse). All Server sent events will be served over this endpoint.
+    The frontend is responsible for registering EventListeners for the events it is interested in on the specific route.
+    """
 
     log = get_logger(__name__)
     put_event: Callable
