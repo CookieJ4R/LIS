@@ -8,17 +8,17 @@ class SystemEvent(BaseEvent):
     ...
 
 
-class RegisterResponseReceiverEvent(SystemEvent):
+class RegisterTempReceiverEvent(SystemEvent):
     """
-    Event to register a temporary ResponseReceiver
+    Event to register a TemporaryEventReceiver
     """
-    def __init__(self, response_receiver):
-        self.response_receiver = response_receiver
+    def __init__(self, event_receiver):
+        self.event_receiver = event_receiver
 
 
-class UnregisterResponseReceiverEvent(SystemEvent):
+class UnregisterTempReceiverEvent(SystemEvent):
     """
-    Event to unregister a temporary ResponseReceiver
+    Event to unregister a TemporaryEventReceiver
     """
-    def __init__(self, response_receiver):
-        self.response_receiver = response_receiver
+    def __init__(self, event_receiver):
+        self.event_receiver = event_receiver

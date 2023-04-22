@@ -44,7 +44,7 @@ async def main():
 
     event_scheduler.load_persistent_events(event_distributor.map_to_schedulable_event)
 
-    rest_server = RestServer()
+    rest_server = RestServer(event_distributor.put_internal)
     rest_server.register_apis([
         PingApi(),
         HueApi(event_distributor.put_internal),
