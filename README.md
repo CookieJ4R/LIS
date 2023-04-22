@@ -38,4 +38,5 @@ The features currently implemented are:
 * Event System to distribute events between feature implementations and the core system to better encapsulate the logic. Also allows for dynamic short-term use response event receivers.
 * Simple Philipps Hue integration using the REST Api of the local hue bridge.
 * Logging
+* Support for server-sent events to communicate events like light state changes via an external source to the frontend. Also supports connecting to SSE-Streams itself (like the Hue-Bridge eventstream)
 * Scheduling system to schedule event for later execution (~accurate to the minute) with support for persistent events that survive a system reboot as well as a grace period system that enables critical persistent events to be executed even if their scheduled execution time has long passed after a system-outage
