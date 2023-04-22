@@ -4,9 +4,21 @@ from core_modules.eventing.BaseEvent import BaseEvent
 
 
 class ScheduleEventExecutionEvent(BaseEvent):
+    """
+    Event for scheduling another event at a given time.
+    """
 
     def __init__(self, exec_time: datetime, event: BaseEvent, persist_after_reboot: bool = None,
                  grace_period_in_minutes: int = None):
+        """
+        Constructor of ScheduleEventExecutionEvent
+        :param exec_time: The time the passed event will be executed at.
+        :param event: The event to execute at the given time.
+        :param persist_after_reboot: Whether the event will persist after a system reboot.
+        :param grace_period_in_minutes: Grace period after which the event will no longer be executed.
+        Useful for persistent events that have long passed after a reboot and should no longer be executed or for the
+        exact opposite - for events that have long since passed but need to be executed anyway!
+        """
 
         if persist_after_reboot is None:
             persist_after_reboot = False

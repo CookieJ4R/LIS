@@ -9,10 +9,11 @@ from core_modules.scheduling.SchedulableEvent import SchedulableEvent
 from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
 from datetime import datetime
 
+
 # TODO add logging statements and simplify api call complexity
 class SchedulingApi(AbstractBaseApi):
     """
-    Simple api to test if the rest server is running.
+    Api to schedule events for later execution via a request to the REST-Server.
     """
 
     log = get_logger(__name__)
