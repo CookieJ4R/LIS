@@ -88,15 +88,39 @@ class StorageManager:
             if section in self._storage:
                 storage_area = self._storage[section]
             else:
-                self._storage[section] = None
+                self._storage[section] = {}
                 storage_area = self._storage[section]
 
         if field in storage_area:
             if overwrite_if_exists:
-                self.update(field, value, section)
+                self.update(value, field, section)
         else:
             storage_area[field] = value
             self._write_toml_file()
+
+    def append_or_add(self, value, field: str, section: str = None) -> None:
+        """
+        Appends the value to a list at the provided field or section, creating it if its non-existent.
+        :param value: The value to append or create the list with.
+        :param field: The field to insert the value at.
+        :param section: The section in which the field will be inserted into.
+        """
+        self.log.info("Appending or adding " + str(value) + " to field " + field + " in section " + str(section))
+        if section is None:
+            storage_area = self._storage
+        else:
+            if section in self._storage:
+                storage_area = self._storage[section]
+            else:
+                self._storage[section] = {}
+                storage_area = self._storage[section]
+
+        if field in storage_area:
+            if type(storage_area[field]) == list:
+                storage_area[field].extend([value])
+        else:
+            storage_area[field] = [value]
+        self._write_toml_file()
 
     def update(self, value, field: str, section: str = None) -> None:
         """
@@ -129,6 +153,24 @@ class StorageManager:
             return
         elif section in self._storage and field in self._storage[section]:
             self._storage[section][field].pop()
+            self._write_toml_file()
+            return
+        self.log.warning("Failed to remove because section or field does not exist!")
+
+    def remove_obj_from_list(self, obj_to_remove: dict, field: str, section: str = None) -> None:
+        """
+        Removes an object out of a list at the specified field and section.
+        :param obj_to_remove: The obj to remove as a dict.
+        :param field: The field with the list to remove the obj out of.
+        :param section: The section the field is contained inside.
+        """
+        self.log.debug("Removing object from field " + field + " in section " + str(section))
+        if section is None and field in self._storage:
+            self._storage[field] = list(filter(obj_to_remove.__ne__, self._storage[field]))
+            self._write_toml_file()
+            return
+        elif section in self._storage and field in self._storage[section]:
+            self._storage[section][field] = list(filter(obj_to_remove.__ne__, self._storage[section][field]))
             self._write_toml_file()
             return
         self.log.warning("Failed to remove because section or field does not exist!")

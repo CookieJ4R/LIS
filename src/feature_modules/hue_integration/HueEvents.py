@@ -20,6 +20,9 @@ class HueLampSetStateEvent(BaseEvent, SchedulableEvent):
     def from_api_json(parsed_json: dict):
         return HueLampSetStateEvent(parsed_json["lamp_id"], parsed_json["on"])
 
+    def to_json(self):
+        return json.dumps(self.__dict__)
+
 
 class HueGetLampsEvent(BaseEvent):
     """

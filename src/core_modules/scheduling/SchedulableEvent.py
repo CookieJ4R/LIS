@@ -17,3 +17,11 @@ class SchedulableEvent(ABC):
         :raises KeyError: If the json does not correspond to this Event.
         """
         ...
+
+    @abstractmethod
+    def to_json(self):
+        """
+        Constructs a JSON representation of this event.
+        :return: A JSON string of this event
+        """
+        ...

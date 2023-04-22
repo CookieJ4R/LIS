@@ -1,8 +1,11 @@
+from typing import Union
+
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.eventing.SystemEvents import SystemEvent, RegisterResponseReceiverEvent, \
     UnregisterResponseReceiverEvent
 from core_modules.logging.lis_logging import get_logger
+from core_modules.scheduling.SchedulableEvent import SchedulableEvent
 
 
 class EventDistributor(EventReceiver):
@@ -79,3 +82,20 @@ class EventDistributor(EventReceiver):
                     await recv.put_internal(event)
             else:
                 self.log.warning("Received event " + str(event) + " but no event receivers were registered")
+
+    def map_to_schedulable_event(self, event_dict: dict) -> Union[SchedulableEvent | None]:
+        """
+        Tries to map the event json dict to an event registered with the EventDistributor.
+        :param event_dict: The dict to map to a known Event.
+        :return: The SchedulableEvent the dict was mapped to if it exists, None otherwise
+        """
+        for event in self.get_registered_events():
+            if issubclass(event, SchedulableEvent):
+                try:
+                    self.log.debug(f"mapping {event_dict} to {event}")
+                    return event.from_api_json(event_dict)
+                except KeyError:
+                    self.log.debug(f"{event_dict} is not mappable to event {event} - skipping!")
+                    continue
+        self.log.error(f"Event {event_dict} could not be mapped to registered event!")
+        return None
