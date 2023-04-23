@@ -99,7 +99,7 @@ class EventDistributor(EventReceiver):
                 try:
                     self.log.debug(f"mapping {event_dict} to {event}")
                     return event.from_api_json(event_dict)
-                except KeyError:
+                except (KeyError, ValueError):
                     self.log.debug(f"{event_dict} is not mappable to event {event} - skipping!")
                     continue
         self.log.error(f"Event {event_dict} could not be mapped to registered event!")
