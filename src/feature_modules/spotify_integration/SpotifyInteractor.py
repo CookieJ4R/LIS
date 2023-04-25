@@ -17,6 +17,9 @@ SPOTIFY_STORAGE_SECTION = "SPOTIFY"
 
 
 class SpotifyInteractor(EventReceiver):
+    # TODO: add method for fetching current track (including api endpoint) as well as a fetch loop every x seconds
+    #  (since spotify api does not provide an event stream for "normal" api users...) and forward the result to the
+    #  LIS sse output
     """
     Class responsible for interacting with the spotify REST api.
     """
