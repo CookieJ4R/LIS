@@ -6,12 +6,16 @@ from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
-from core_modules.storage.StorageManager import StorageManager, FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE, \
-    FIELD_HUE_CLIENT_KEY
+from core_modules.storage.StorageManager import StorageManager
 from feature_modules.hue_integration.HueConfig import HueConfig
 from feature_modules.hue_integration.HueEvents import HueGetLampsEvent, HueGetLampsResponseEvent, HueLampSetStateEvent
 from feature_modules.hue_integration.HueLamp import HueLamp
 from feature_modules.hue_integration.HueSSEReceiver import HueSSEReceiver
+
+SECTION_HEADER_HUE = "PHILIPPS_HUE"
+
+FIELD_HUE_BRIDGE_IP = "HUE_BRIDGE_IP"
+FIELD_HUE_CLIENT_KEY = "HUE_CLIENT_KEY"
 
 
 class HueInteractor(EventReceiver):

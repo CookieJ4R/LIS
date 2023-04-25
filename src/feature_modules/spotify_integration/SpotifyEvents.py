@@ -17,3 +17,16 @@ class SpotifyStartResumePlaybackEvent(BaseEvent, SimpleSchedulableEvent):
     Event to start or resume the current spotify playback
     """
     ...
+
+
+class SpotifyNextTrackEvent(BaseEvent, SimpleSchedulableEvent):
+    """
+    Event to switch to the next spotify track
+    """
+    ...
+
+
+class SpotifyPreviousTrackEvent(BaseEvent, SimpleSchedulableEvent):
+    """
+    Event to switch to the previous spotify track
+    """
