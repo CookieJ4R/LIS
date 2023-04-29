@@ -8,7 +8,7 @@ from core_modules.rest.RestServer import REST_METHOD_GET
 
 class SysInfoApi(AbstractBaseApi):
     """
-    Api to get information about the LIS system.
+    Api to get information about LIS.
     """
 
     log = get_logger(__name__)
@@ -28,6 +28,10 @@ class SysInfoApi(AbstractBaseApi):
 
     @staticmethod
     def _create_sysinfo_response():
+        """
+        Helper method to greate the dictionary that is returned as a JSON response.
+        :return:
+        """
         info = {
             "sys_time": datetime.datetime.now().strftime("%H:%M:%S"),
             "sys_date": datetime.datetime.now().strftime("%Y-%m-%d")
