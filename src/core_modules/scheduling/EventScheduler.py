@@ -99,7 +99,8 @@ class EventScheduler(EventReceiver):
         for exec_time in exec_times_to_remove:
             executed_events = self._event_execution_map.pop(exec_time)
             for event in executed_events:
-                # not called on events_to_schedule to also removed events past their grace period from persistence
+                # not called with events_to_schedule to also remove events past their grace period from persistence
+                self.log.info("Trying to remove " + str(event.to_obj_rep()) + " from persistence..")
                 self.storage.remove_obj_from_list(event.to_obj_rep(),
                                                   STORAGE_PERSISTENT_EVENTS_FIELD,
                                                   STORAGE_PERSISTENT_EVENTS_SECTION)

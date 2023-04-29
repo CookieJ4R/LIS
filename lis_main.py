@@ -14,7 +14,8 @@ from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_S
     FIELD_SERVER_PORT
 from feature_modules.hue_integration.HueApi import HueApi
 from feature_modules.hue_integration.HueInteractor import HueInteractor
-
+from feature_modules.spotify_integration.SpotifyApi import SpotifyApi
+from feature_modules.spotify_integration.SpotifyInteractor import SpotifyInteractor
 
 log = get_logger("lis_main")
 
@@ -40,7 +41,8 @@ async def main():
 
     event_distributor.register_event_receivers([
         event_scheduler,
-        HueInteractor(storage, event_distributor.put_internal)
+        HueInteractor(storage, event_distributor.put_internal),
+        SpotifyInteractor(event_distributor.put_internal, storage)
     ])
 
     event_scheduler.load_persistent_events(event_distributor.map_to_schedulable_event)
@@ -50,6 +52,7 @@ async def main():
         PingApi(),
         SysInfoApi(),
         HueApi(event_distributor.put_internal),
+        SpotifyApi(event_distributor.put_internal),
         SchedulingApi(event_distributor.put_internal, event_distributor.map_to_schedulable_event)
     ])
     rest_server.start_server(storage.get(FIELD_SERVER_IP, section=SECTION_HEADER_SERVER, fallback="127.0.0.1"),

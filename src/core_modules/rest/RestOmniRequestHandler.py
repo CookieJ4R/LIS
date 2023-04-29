@@ -48,7 +48,7 @@ class RestOmniRequestHandler(BaseRequestHandler):
         method = self.request.method
         path = self.request.path
         parameters = remap_request_args(self.request.arguments)
-        self.log.debug("Received " + method + " request on endpoint " + path)
+        self.log.info("Received " + method + " request on endpoint " + path)
         status, response = await self.request_handle_callable(path, parameters, method)
         self.set_status(status)
         self.write(response)

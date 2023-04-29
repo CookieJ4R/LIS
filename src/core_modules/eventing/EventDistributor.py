@@ -83,7 +83,7 @@ class EventDistributor(EventReceiver):
             elif type(event) in self.event_distribution_map:
                 receivers = self.event_distribution_map[type(event)]
                 for recv in receivers:
-                    self.log.info("Forwarding event " + str(event) + " to " + str(recv))
+                    self.log.debug("Forwarding event " + str(event) + " to " + str(recv))
                     await recv.put_internal(event)
             else:
                 self.log.warning("Received event " + str(event) + " but no event receivers were registered")
@@ -99,7 +99,7 @@ class EventDistributor(EventReceiver):
                 try:
                     self.log.debug(f"mapping {event_dict} to {event}")
                     return event.from_api_json(event_dict)
-                except KeyError:
+                except (KeyError, ValueError):
                     self.log.debug(f"{event_dict} is not mappable to event {event} - skipping!")
                     continue
         self.log.error(f"Event {event_dict} could not be mapped to registered event!")
