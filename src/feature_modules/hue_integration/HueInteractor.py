@@ -82,24 +82,10 @@ class HueInteractor(EventReceiver):
         Empty list if no lamp is connected or an error occurred.
         """
         self.log.info("Getting connected lights via Hue-Bridge REST-Api")
-        status, resp = await self._send_request(REST_METHOD_GET, "resource/device")
+        status, resp = await self._send_request(REST_METHOD_GET, "resource/light")
         lamps = []
         if status == 200:
-            devices = resp["data"]
-            for device in devices:
-                light_service = self._get_light_service_of_device(device["services"])
-                if light_service is not None:
-                    lamps.append(HueLamp(device["metadata"]["name"], light_service["rid"]))
+            lights = resp["data"]
+            for light in lights:
+                lamps.append(HueLamp(light["metadata"]["name"], light["id"], light["on"]))
         return lamps
-
-    @staticmethod
-    def _get_light_service_of_device(services_list: list):
-        """
-        Helper method to discern which devices are lamps.
-        :param services_list: service list of a hue device.
-        :return: The light service if present {"rid": xxx, "rtype": light}, None otherwise
-        """
-        for service in services_list:
-            if service["rtype"] == "light":
-                return service
-        return None
