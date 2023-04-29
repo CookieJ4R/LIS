@@ -41,7 +41,7 @@ async def main():
     event_distributor.register_event_receivers([
         event_scheduler,
         HueInteractor(storage, event_distributor.put_internal),
-        SpotifyInteractor(storage)
+        SpotifyInteractor(event_distributor.put_internal, storage)
     ])
 
     event_scheduler.load_persistent_events(event_distributor.map_to_schedulable_event)

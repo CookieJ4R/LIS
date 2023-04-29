@@ -32,7 +32,7 @@ class SpotifyApi(AbstractBaseApi):
         """
         Endpoint handler for the /spotify/play endpoint.
         :param _args: contains the arguments of the request
-        :return: Tuple containing of (status_code, response)
+        :return: Tuple containing the status_code and response
         """
         await self.put_event(SpotifyStartResumePlaybackEvent())
         return 200, ""
@@ -41,7 +41,7 @@ class SpotifyApi(AbstractBaseApi):
         """
         Endpoint handler for the /spotify/pause endpoint.
         :param _args: contains the arguments of the request
-        :return: Tuple containing of (status_code, response)
+        :return: Tuple containing the status_code and response)
         """
         await self.put_event(SpotifyPausePlaybackEvent())
         return 200, ""
@@ -50,7 +50,7 @@ class SpotifyApi(AbstractBaseApi):
         """
         Endpoint handler for the /spotify/next endpoint.
         :param _args: contains the arguments of the request
-        :return: Tuple containing of (status_code, response)
+        :return: Tuple containing the status_code and response
         """
         await self.put_event(SpotifyNextTrackEvent())
         return 200, ""
@@ -59,7 +59,7 @@ class SpotifyApi(AbstractBaseApi):
         """
         Endpoint handler for the /spotify/previous endpoint.
         :param _args: contains the arguments of the request
-        :return: Tuple containing of (status_code, response)
+        :return: Tuple containing the status_code and response
         """
         await self.put_event(SpotifyPreviousTrackEvent())
         return 200, ""
@@ -68,7 +68,7 @@ class SpotifyApi(AbstractBaseApi):
         """
         Endpoint handler for the /spotify/current endpoint.
         :param _args: contains the arguments of the request
-        :return: Tuple containing of (status_code, response)
+        :return: Tuple containing the status_code and the JSON string of the current playback
         """
         response_receiver = TemporaryEventReceiver(self.put_event, [SpotifyGetCurrentTrackResponseEvent])
         await response_receiver.start()

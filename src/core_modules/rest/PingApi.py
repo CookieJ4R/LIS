@@ -20,7 +20,7 @@ class PingApi(AbstractBaseApi):
         """
         Endpoint handler for the /ping endpoint.
         :param _args: contains the arguments of the request
-        :return: Tuple containing of (status_code, response)
+        :return: Tuple containing the status_code and response
         """
         self.log.info("Received request - replying with pong!")
         return 200, "pong"

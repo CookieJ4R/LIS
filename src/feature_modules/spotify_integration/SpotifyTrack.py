@@ -1,6 +1,12 @@
-class SpotifyTrack:
+import dataclasses
 
-    def __init__(self, title: str, artist: str, cover_url: str):
-        self.title = title
-        self.artist = artist
-        self.cover_url = cover_url
+
+@dataclasses.dataclass
+class SpotifyTrack:
+    """
+    Class representing a singular Spotify Track.
+    """
+
+    title: str
+    artist: str
+    cover_url: str
