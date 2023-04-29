@@ -83,7 +83,7 @@ class EventDistributor(EventReceiver):
             elif type(event) in self.event_distribution_map:
                 receivers = self.event_distribution_map[type(event)]
                 for recv in receivers:
-                    self.log.info("Forwarding event " + str(event) + " to " + str(recv))
+                    self.log.debug("Forwarding event " + str(event) + " to " + str(recv))
                     await recv.put_internal(event)
             else:
                 self.log.warning("Received event " + str(event) + " but no event receivers were registered")

@@ -1,3 +1,6 @@
+import asyncio
+from typing import Callable
+
 import aiohttp
 
 from core_modules.eventing.BaseEvent import BaseEvent
@@ -5,8 +8,12 @@ from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET, REST_METHOD_POST
 from core_modules.storage.StorageManager import StorageManager
+from feature_modules.spotify_integration.SpotifyCurrentPlaybackSSEProvider import SpotifyCurrentPlaybackSSEProvider
 from feature_modules.spotify_integration.SpotifyEvents import SpotifyPausePlaybackEvent, \
-    SpotifyStartResumePlaybackEvent, SpotifyPreviousTrackEvent, SpotifyNextTrackEvent
+    SpotifyStartResumePlaybackEvent, SpotifyPreviousTrackEvent, SpotifyNextTrackEvent, SpotifyGetCurrentTrackEvent, \
+    SpotifyGetCurrentTrackResponseEvent
+from feature_modules.spotify_integration.SpotifyPlaybackState import SpotifyPlaybackState, SpotifyPlayback
+from feature_modules.spotify_integration.SpotifyTrack import SpotifyTrack
 
 WEB_API_BASE_URL = "https://api.spotify.com/v1"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
@@ -25,18 +32,22 @@ class SpotifyInteractor(EventReceiver):
     """
     log = get_logger(__name__)
 
-    def __init__(self, storage: StorageManager):
+    def __init__(self, put_event: Callable, storage: StorageManager):
         super().__init__()
+        self.put_event = put_event
         self.storage = storage
         self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
+        self.current_playback_sse_provider = SpotifyCurrentPlaybackSSEProvider(put_event)
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
         return [SpotifyPausePlaybackEvent,
                 SpotifyStartResumePlaybackEvent,
                 SpotifyNextTrackEvent,
-                SpotifyPreviousTrackEvent]
+                SpotifyPreviousTrackEvent,
+                SpotifyGetCurrentTrackEvent]
 
     async def handle_specific_event(self, event: BaseEvent):
+        self.log.info("Received event: " + str(event))
         if isinstance(event, SpotifyPausePlaybackEvent):
             await self._pause_playback()
         elif isinstance(event, SpotifyStartResumePlaybackEvent):
@@ -45,8 +56,15 @@ class SpotifyInteractor(EventReceiver):
             await self._next_track()
         elif isinstance(event, SpotifyPreviousTrackEvent):
             await self._prev_track()
+        elif isinstance(event, SpotifyGetCurrentTrackEvent):
+            playback_state = await self._get_current_track()
+            await self.put_event(SpotifyGetCurrentTrackResponseEvent(playback_state))
 
     def _get_bearer_auth_header(self):
+        """
+        Construct a dictionary containing the auth header for the spotify web api
+        :return: The constructed header dictionary
+        """
         return {"Authorization": "Bearer " + self.storage.get(ACCESS_TOKEN_FIELD, SPOTIFY_STORAGE_SECTION, "")}
 
     async def _start_resume_playback(self):
@@ -82,6 +100,28 @@ class SpotifyInteractor(EventReceiver):
                                                   WEB_API_BASE_URL + PLAYER_BASE_ENDPOINT + "/previous",
                                                   headers=self._get_bearer_auth_header())
 
+    async def _get_current_track(self):
+        """
+        Method to get the currently playing track as well as the playback state
+        """
+        status, response = await self._send_request_with_token_retry(REST_METHOD_GET,
+                                                                     WEB_API_BASE_URL + PLAYER_BASE_ENDPOINT +
+                                                                     "/currently-playing",
+                                                                     headers=self._get_bearer_auth_header())
+        if status == 200:
+            try:
+                track = SpotifyTrack(response["item"]["name"],
+                                     response["item"]["artists"][0]["name"],
+                                     response["item"]["album"]["images"][1]["url"])
+            except KeyError:
+                track = None
+            try:
+                playback = SpotifyPlayback.PLAYING if response["is_playing"] else SpotifyPlayback.STOPPED
+            except KeyError:
+                playback = SpotifyPlayback.NONE
+            return SpotifyPlaybackState(playback, track)
+        return SpotifyPlaybackState(None, None)
+
     async def _refresh_access_token(self):
         """
         Method to refresh and update the access_token by sending a request with the refresh_token.
@@ -115,7 +155,10 @@ class SpotifyInteractor(EventReceiver):
                 return response.status, None
         elif method == REST_METHOD_GET:
             async with await self.session.get(url, headers=headers) as response:
-                return response.status, None
+                json = None
+                if response.status == 200:
+                    json = await response.json()
+                return response.status, json
         elif method == REST_METHOD_POST:
             async with await self.session.post(url, headers=headers, data=data) as response:
                 if response.content_type == "application/json":
