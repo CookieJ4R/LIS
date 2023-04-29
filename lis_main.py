@@ -7,6 +7,7 @@ from core_modules.eventing.EventDistributor import EventDistributor
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.PingApi import PingApi
 from core_modules.rest.RestServer import RestServer
+from core_modules.rest.SysInfoApi import SysInfoApi
 from core_modules.scheduling.EventScheduler import EventScheduler
 from core_modules.scheduling.SchedulingApi import SchedulingApi
 from core_modules.storage.StorageManager import StorageManager, SECTION_HEADER_SERVER, FIELD_SERVER_IP, \
@@ -49,6 +50,7 @@ async def main():
     rest_server = RestServer(event_distributor.put_internal)
     rest_server.register_apis([
         PingApi(),
+        SysInfoApi(),
         HueApi(event_distributor.put_internal),
         SpotifyApi(event_distributor.put_internal),
         SchedulingApi(event_distributor.put_internal, event_distributor.map_to_schedulable_event)
