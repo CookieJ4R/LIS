@@ -26,9 +26,9 @@ The "big" features I want to implement at the very least and the topics I want t
 
 * [x] Philipps Hue Integration 
 * [x] Spotify Integration
+* [X] Clock (to provide Server-Time offset to the client)
+* [X] Weather
 * [ ] Calendar
-* [ ] Clock/Alarm
-* [ ] Weather
 * [ ] CI/CD + Containerization
 
 
@@ -40,4 +40,5 @@ The features currently implemented are:
 * Simple Spotify integration using the spotify web api allowing for play, pause, next and prev commands and currently playing track. (Active device discovery and playback transferring may be implemented later on)
 * Logging
 * Support for server-sent events to communicate events like light state changes via an external source to the frontend. Also supports connecting to SSE-Streams itself (like the Hue-Bridge eventstream)
-* Scheduling system to schedule event for later execution (~accurate to the minute) with support for persistent events that survive a system reboot as well as a grace period system that enables critical persistent events to be executed even if their scheduled execution time has long passed after a system-outage
+* Scheduling system to schedule event for later execution (~accurate to the minute) with support for persistent events that survive a system reboot as well as a grace period system that enables critical persistent events to be executed even if their scheduled execution time has long passed after a system-outage. It also supports automatic re-scheduling based on a repetition policy (e.g. hourly or daily).
+* Weather data based on the provided longitude and latitude based on the Open-Weathermap API (updates every full hour)
