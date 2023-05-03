@@ -5,8 +5,9 @@ from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.AbstractBaseApi import AbstractBaseApi
 from core_modules.rest.RestServer import REST_METHOD_POST
 from core_modules.rest.request_util import get_bool_from_args_obj, get_string_from_args_obj, get_int_from_args_obj
+from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.ScheduledEvent import EXEC_DATETIME_FORMAT
-from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
+from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent, DEFAULT_GRACE_PERIOD_IN_MINUTES
 from datetime import datetime
 
 
@@ -60,8 +61,10 @@ class SchedulingApi(AbstractBaseApi):
         """
         self.log.info("Received request to schedule an event!")
         exec_time = get_string_from_args_obj("exec_time", args)
-        persist = get_bool_from_args_obj("persist_after_reboot", args)
-        grace_period_minutes = get_int_from_args_obj("grace_period_in_minutes", args)
+        persist = get_bool_from_args_obj("persist_after_reboot", args, False)
+        repeat_policy = get_string_from_args_obj("repeat_policy", args)
+        grace_period_minutes = get_int_from_args_obj("grace_period_in_minutes", args, DEFAULT_GRACE_PERIOD_IN_MINUTES)
+
         event_json = get_string_from_args_obj("event", args)
 
         exec_time = self._parse_exec_time(exec_time)
@@ -72,10 +75,13 @@ class SchedulingApi(AbstractBaseApi):
         if event_dict is None:
             return 400, "Supplied event is not valid JSON!"
 
+        repeat_policy = EventRepeatPolicy.get_event_repeat_policy_from_name(repeat_policy)
+
         event_to_schedule = self._event_mapping_func(event_dict)
         if event_to_schedule is None:
             return 400, "Event could not be mapped to registered event!"
 
         self.log.info("Sending event to schedule " + str(event_to_schedule) + " for execution at " + str(exec_time))
-        await self.put_event(ScheduleEventExecutionEvent(exec_time, event_to_schedule, persist, grace_period_minutes))
+        await self.put_event(ScheduleEventExecutionEvent(exec_time, event_to_schedule, persist,
+                                                         repeat_policy, grace_period_minutes))
         return 200, ""

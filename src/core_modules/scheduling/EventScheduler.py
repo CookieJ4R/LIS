@@ -6,8 +6,10 @@ from typing import Callable
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
+from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.ScheduledEvent import ScheduledEvent, EXEC_DATETIME_FORMAT
 from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
+from core_modules.scheduling.scheduling_helper import get_next_execution_time_for_policy
 from core_modules.storage.StorageManager import StorageManager
 
 STORAGE_PERSISTENT_EVENTS_FIELD = "SCHEDULED_EVENTS"
@@ -15,6 +17,8 @@ STORAGE_PERSISTENT_EVENTS_SECTION = "SCHEDULING"
 
 PERSISTENT_EVENT_FIELD_EXEC_TIME = "exec_time"
 PERSISTENT_EVENT_FIELD_EVENT = "event"
+PERSISTENT_EVENT_FIELD_PERSIST_AFTER_REBOOT = "persist_after_reboot"
+PERSISTENT_EVENT_FIELD_REPEAT_POLICY = "repeat_policy"
 PERSISTENT_EVENT_FIELD_GRACE_PERIOD = "grace_period_in_minutes"
 
 
@@ -45,8 +49,12 @@ class EventScheduler(EventReceiver):
         for stored_event in events_to_load:
             ev = event_mapping_func(json.loads(stored_event[PERSISTENT_EVENT_FIELD_EVENT]))
             exec_time = datetime.strptime(stored_event[PERSISTENT_EVENT_FIELD_EXEC_TIME], EXEC_DATETIME_FORMAT)
+            repeat_policy = EventRepeatPolicy.get_event_repeat_policy_from_name(
+                stored_event[PERSISTENT_EVENT_FIELD_REPEAT_POLICY])
+            persist_after_reboot = stored_event[PERSISTENT_EVENT_FIELD_PERSIST_AFTER_REBOOT]
             grace_time_in_minutes = stored_event[PERSISTENT_EVENT_FIELD_GRACE_PERIOD]
-            self._add_event_to_execution_map(exec_time, ScheduledEvent(exec_time, ev, grace_time_in_minutes))
+            self._add_event_to_execution_map(exec_time, ScheduledEvent(exec_time, ev, persist_after_reboot,
+                                                                       repeat_policy, grace_time_in_minutes))
 
     def _add_event_to_execution_map(self, exec_time: datetime, scheduled_event: ScheduledEvent):
         """
@@ -66,7 +74,8 @@ class EventScheduler(EventReceiver):
         :param scheduling_event: The scheduling event that is being handled.
         """
         exec_time = scheduling_event.exec_time.replace(second=0, microsecond=0)
-        scheduled_event = ScheduledEvent(exec_time, scheduling_event.event, scheduling_event.grace_period_in_minutes)
+        scheduled_event = ScheduledEvent(exec_time, scheduling_event.event, scheduling_event.persist_after_reboot,
+                                         scheduling_event.repeat_policy, scheduling_event.grace_period_in_minutes)
         if scheduling_event.persist_after_reboot:
             self.log.debug(f"Writing persistent event {str(scheduled_event)} to storage.")
             self.storage.append_or_add(scheduled_event.to_obj_rep(),
@@ -78,7 +87,7 @@ class EventScheduler(EventReceiver):
         if isinstance(event, ScheduleEventExecutionEvent):
             self._handle_scheduling_event(event)
 
-    def _get_events_to_execute_now(self, now: datetime):
+    async def _get_events_to_execute_now(self, now: datetime):
         """
         Method for fetching all events that should be executed at this point in time and removed from the internal map.
         :param now: The time the event checking was performed (=> when the async sleep ended).
@@ -91,13 +100,14 @@ class EventScheduler(EventReceiver):
                 events_in_datetime = self._event_execution_map[exec_date]
                 exec_times_to_remove.append(exec_date)
                 for event in events_in_datetime:
-                    if now >= exec_date + timedelta(minutes=event.grace_period_in_minutes):
+                    if now > exec_date + timedelta(minutes=event.grace_period_in_minutes):
                         self.log.info(f"Event {str(event)} has passed an is past its grace period - skipping!")
                         continue
                     else:
                         events_to_schedule.append(event.event_to_exec)
         for exec_time in exec_times_to_remove:
             executed_events = self._event_execution_map.pop(exec_time)
+            await self._reschedule_events(executed_events)
             for event in executed_events:
                 # not called with events_to_schedule to also remove events past their grace period from persistence
                 self.log.info("Trying to remove " + str(event.to_obj_rep()) + " from persistence..")
@@ -106,13 +116,26 @@ class EventScheduler(EventReceiver):
                                                   STORAGE_PERSISTENT_EVENTS_SECTION)
         return events_to_schedule
 
+    async def _reschedule_events(self, executed_events):
+        """
+        Internal method for rescheduling events that have a repeat policy defined
+        :param executed_events: A list containing all executed event that need to be checked for a re-schedule
+        """
+        for event in executed_events:
+            if event.repeat_policy is EventRepeatPolicy.NoRepeat:
+                continue
+            next_exec_time = get_next_execution_time_for_policy(event.exec_time, event.repeat_policy)
+            await self.put_event(
+                ScheduleEventExecutionEvent(next_exec_time, event.event_to_exec, event.persist_after_reboot,
+                                            event.repeat_policy, event.grace_period_in_minutes))
+
     async def _scheduling_engine_task(self):
         """
         Task for checking which events to execute at the given time. Will always fire around XX:XX:00.
         """
         while True:
             now = datetime.now()
-            events = self._get_events_to_execute_now(now)
+            events = await self._get_events_to_execute_now(now)
             for event in events:
                 self.log.info(f"Executing prior scheduled event {event}")
                 await self.put_event(event)
