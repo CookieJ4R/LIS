@@ -6,6 +6,7 @@ import aiohttp
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
+from core_modules.rest.RestServerEvents import SSEDataEvent
 from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
 from core_modules.scheduling.scheduling_helper import get_next_full_hour
@@ -38,7 +39,7 @@ class WeatherInteractor(EventReceiver):
         asyncio.create_task(self._initial_fetch_task())
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
-        return [GetCurrentWeatherEvent]
+        return [GetCurrentWeatherEvent, RefreshWeatherEvent]
 
     async def _initial_fetch_task(self):
         await self.get_current_weather_data()
@@ -52,7 +53,7 @@ class WeatherInteractor(EventReceiver):
             await self.put_event(CurrentWeatherResponseEvent(self.cur_weather_data))
         elif isinstance(event, RefreshWeatherEvent):
             await self.get_current_weather_data()
-            # TODO: publish to SSE channel
+            await self.put_event(SSEDataEvent("weather/current", self.cur_weather_data.to_json()))
 
     def _get_weather_params(self) -> dict:
         """
