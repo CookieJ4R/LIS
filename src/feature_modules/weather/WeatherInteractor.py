@@ -42,6 +42,10 @@ class WeatherInteractor(EventReceiver):
         return [GetCurrentWeatherEvent, RefreshWeatherEvent]
 
     async def _initial_fetch_task(self):
+        """
+        Task that gets run initially to fetch the first weather data and send the scheduling event for automatic
+        refreshing
+        """
         await self.get_current_weather_data()
         await self.put_event(ScheduleEventExecutionEvent(get_next_full_hour(), RefreshWeatherEvent(),
                                                          repeat_policy=EventRepeatPolicy.Hourly))
