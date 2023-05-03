@@ -6,6 +6,9 @@ import aiohttp
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
+from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
+from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
+from core_modules.scheduling.scheduling_helper import get_next_full_hour
 from core_modules.storage.StorageManager import StorageManager
 from feature_modules.weather.WeatherData import WeatherData
 from feature_modules.weather.WeatherEvents import GetCurrentWeatherEvent, CurrentWeatherResponseEvent, \
@@ -32,10 +35,15 @@ class WeatherInteractor(EventReceiver):
         self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
 
         self.cur_weather_data = None
-        asyncio.create_task(self.get_current_weather_data())
+        asyncio.create_task(self._initial_fetch_task())
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
         return [GetCurrentWeatherEvent]
+
+    async def _initial_fetch_task(self):
+        await self.get_current_weather_data()
+        await self.put_event(ScheduleEventExecutionEvent(get_next_full_hour(), RefreshWeatherEvent(),
+                                                         repeat_policy=EventRepeatPolicy.Hourly))
 
     async def handle_specific_event(self, event: BaseEvent):
         if isinstance(event, GetCurrentWeatherEvent):
@@ -44,6 +52,7 @@ class WeatherInteractor(EventReceiver):
             await self.put_event(CurrentWeatherResponseEvent(self.cur_weather_data))
         elif isinstance(event, RefreshWeatherEvent):
             await self.get_current_weather_data()
+            # TODO: publish to SSE channel
 
     def _get_weather_params(self) -> dict:
         """
@@ -55,7 +64,7 @@ class WeatherInteractor(EventReceiver):
             "lon": str(self.storage.get(LOC_LONGITUDE_FIELD, WEATHER_STORAGE_SECTION, "")),
             "appid": str(self.storage.get(API_TOKEN_FIELD, WEATHER_STORAGE_SECTION, "")),
             "units": "metric"
-         }
+        }
         self.log.debug("Querying weather with params: " + str(params))
         return params
 

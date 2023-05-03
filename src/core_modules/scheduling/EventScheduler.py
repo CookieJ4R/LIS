@@ -100,7 +100,7 @@ class EventScheduler(EventReceiver):
                 events_in_datetime = self._event_execution_map[exec_date]
                 exec_times_to_remove.append(exec_date)
                 for event in events_in_datetime:
-                    if now >= exec_date + timedelta(minutes=event.grace_period_in_minutes):
+                    if now > exec_date + timedelta(minutes=event.grace_period_in_minutes):
                         self.log.info(f"Event {str(event)} has passed an is past its grace period - skipping!")
                         continue
                     else:

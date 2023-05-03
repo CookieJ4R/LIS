@@ -70,3 +70,12 @@ def get_next_year_for_date(old_datetime: datetime):
     :return: The old datetime plus 1 year.
     """
     return old_datetime + relativedelta(years=1)
+
+
+def get_next_full_hour():
+    """
+    Returns a datetime for the next full hour based on the current time (minutes = seconds = microseconds = 0)
+    :return: A datetime for the next full hour.
+    """
+    new_date = datetime.now() + timedelta(hours=1)
+    return new_date.replace(minute=0, second=0, microsecond=0)

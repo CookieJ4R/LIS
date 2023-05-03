@@ -7,7 +7,7 @@ from core_modules.rest.RestServer import REST_METHOD_POST
 from core_modules.rest.request_util import get_bool_from_args_obj, get_string_from_args_obj, get_int_from_args_obj
 from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.ScheduledEvent import EXEC_DATETIME_FORMAT
-from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
+from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent, DEFAULT_GRACE_PERIOD_IN_MINUTES
 from datetime import datetime
 
 
@@ -63,7 +63,7 @@ class SchedulingApi(AbstractBaseApi):
         exec_time = get_string_from_args_obj("exec_time", args)
         persist = get_bool_from_args_obj("persist_after_reboot", args, False)
         repeat_policy = get_string_from_args_obj("repeat_policy", args)
-        grace_period_minutes = get_int_from_args_obj("grace_period_in_minutes", args, 1)
+        grace_period_minutes = get_int_from_args_obj("grace_period_in_minutes", args, DEFAULT_GRACE_PERIOD_IN_MINUTES)
 
         event_json = get_string_from_args_obj("event", args)
 

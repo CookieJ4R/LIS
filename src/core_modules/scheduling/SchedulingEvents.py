@@ -4,6 +4,9 @@ from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.SchedulableEvent import SchedulableEvent
 
+# set to one to prevent event scheduling problems when the event execution lacks one second behind (minute, hour change)
+DEFAULT_GRACE_PERIOD_IN_MINUTES = 1
+
 
 class ScheduleEventExecutionEvent(BaseEvent):
     """
@@ -11,7 +14,8 @@ class ScheduleEventExecutionEvent(BaseEvent):
     """
 
     def __init__(self, exec_time: datetime, event: SchedulableEvent, persist_after_reboot: bool = False,
-                 repeat_policy: EventRepeatPolicy = EventRepeatPolicy.NoRepeat, grace_period_in_minutes: int = 0):
+                 repeat_policy: EventRepeatPolicy = EventRepeatPolicy.NoRepeat,
+                 grace_period_in_minutes: int = DEFAULT_GRACE_PERIOD_IN_MINUTES):
         """
         Constructor of ScheduleEventExecutionEvent
         :param datetime exec_time: The time the passed event will be executed at.
