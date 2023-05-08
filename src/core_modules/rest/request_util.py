@@ -30,7 +30,7 @@ def get_int_from_args_obj(arg_name: str, args_obj, default: int = None):
     """
     if arg_name in args_obj:
         try:
-            int(_decode_value(args_obj[arg_name]))
+            return int(_decode_value(args_obj[arg_name]))
         except ValueError:
             log.error(str(args_obj[arg_name] + " is not an int!"))
             raise
