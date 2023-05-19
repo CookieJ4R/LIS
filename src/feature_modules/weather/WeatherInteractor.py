@@ -27,7 +27,7 @@ class WeatherInteractor(EventReceiver):
     """
     Class responsible for interacting with the openweathermap api.
     """
-    log = get_logger(__name__, "DEBUG")
+    log = get_logger(__name__)
 
     def __init__(self, put_event: Callable, storage: StorageManager):
         super().__init__()

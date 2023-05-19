@@ -29,13 +29,28 @@ class CalendarEventOrdering(Enum):
     EARLIEST_END = auto()
 
 
+CALENDAR_URL_FIELD = "CALENDAR_URL"
+CALENDAR_SECTION = "CALENDAR"
+
+CALENDAR_EVENT_MARKER = "VEVENT"
+CALENDAR_COMPONENT_DTSTART = "dtstart"
+CALENDAR_COMPONENT_DTEND = "dtend"
+CALENDAR_COMPONENT_SUMMARY = "summary"
+CALENDAR_COMPONENT_RRULE = "rrule"
+CALENDAR_COMPONENT_RRULE_FREQ = "FREQ"
+CALENDAR_COMPONENT_RRULE_UNTIL = "UNTIL"
+
+
 class CalendarInteractor(EventReceiver):
-    log = get_logger(__name__, "DEBUG")
+    """
+    Class containing all logic for integrating an ical Calendar into LIS.
+    """
+    log = get_logger(__name__)
 
     def __init__(self, put_event: Callable, storage: StorageManager):
         super().__init__()
         self.put_event = put_event
-        self.calendar_url = storage.get("CALENDAR_URL", "CALENDAR")
+        self.calendar_url = storage.get(CALENDAR_URL_FIELD, CALENDAR_SECTION)
         self.last_fetched_events = []
         self.current_expire_refresh_event = None
         self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
@@ -122,8 +137,8 @@ class CalendarInteractor(EventReceiver):
         :param limit: How many events will be returned for today at maximum.
         :return: A list containing up to *limit* calendar events that are scheduled for today.
         """
+        self.log.info("Fetching events for today...")
         next_events = self.get_next_events(events, limit)
-        self.log.info(next_events)
         today_events = []
         for event in next_events:
             if event.start.date() == date.today():
@@ -201,16 +216,20 @@ class CalendarInteractor(EventReceiver):
                 cal = Calendar.from_ical(await response.text())
                 for component in cal.walk():
                     # get event components from the ical
-                    if component.name == "VEVENT":
-                        ev = CalendarEventSchedule(component.get("dtstart").dt,
-                                                   component.get("dtend").dt,
-                                                   str(component.get("summary")),
+                    if component.name == CALENDAR_EVENT_MARKER:
+                        ev = CalendarEventSchedule(component.get(CALENDAR_COMPONENT_DTSTART).dt,
+                                                   component.get(CALENDAR_COMPONENT_DTEND).dt,
+                                                   str(component.get(CALENDAR_COMPONENT_SUMMARY)),
                                                    CalendarRepeatPolicy.get_repeat_policy_from_name(
-                                                       component.get("rrule")["FREQ"][0]) if "rrule" in component
+                                                       component.get(CALENDAR_COMPONENT_RRULE)[
+                                                           CALENDAR_COMPONENT_RRULE_FREQ][0]) if
+                                                   CALENDAR_COMPONENT_RRULE in component
                                                    else CalendarRepeatPolicy.NoRepeat,
-                                                   component.get("rrule")["UNTIL"][0]
-                                                   if ("rrule" in component and "UNTIL" in component.get(
-                                                       "rrule")) else None)
+                                                   component.get(CALENDAR_COMPONENT_RRULE)[
+                                                       CALENDAR_COMPONENT_RRULE_UNTIL][0]
+                                                   if (CALENDAR_COMPONENT_RRULE in component and
+                                                       CALENDAR_COMPONENT_RRULE_UNTIL in component.get(
+                                                               CALENDAR_COMPONENT_RRULE)) else None)
                         tmp_events.append(ev)
         now = datetime.now(tz=tzlocal.get_localzone())
         for ev in tmp_events:
@@ -235,6 +254,10 @@ class CalendarInteractor(EventReceiver):
         return events
 
     async def fetch_events_and_refresh(self):
+        """
+        Fetches calendar events and sends a CalenderRefresh event
+        :return: The fetched calendar events.
+        """
         events = await self._fetch_calendar_events()
         await self.put_event(CalendarRefreshEvent())
         return events
