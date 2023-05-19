@@ -30,3 +30,11 @@ class SpotifyPlayerState:
         :return: the json representation of the player state.
         """
         return json.dumps({"playback": self.playback, "current_track": self.current_track.__dict__})
+
+    def __eq__(self, other):
+        if isinstance(other, SpotifyPlayerState):
+            return self.playback == other.playback and self.current_track == other.current_track
+        return False
+
+    def __hash__(self):
+        return hash((self.playback, self.current_track))

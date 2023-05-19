@@ -31,3 +31,12 @@ class ScheduleEventExecutionEvent(BaseEvent):
         self.persist_after_reboot = persist_after_reboot
         self.repeat_policy = repeat_policy
         self.grace_period_in_minutes = grace_period_in_minutes
+
+
+class UnscheduleEventExecutionEvent(BaseEvent):
+
+    def __init__(self, event_to_remove: SchedulableEvent,
+                 remove_following_events=False, remove_from_persistence=False):
+        self.event_to_remove = event_to_remove
+        self.remove_following_events = remove_following_events
+        self.remove_from_persistence = remove_from_persistence

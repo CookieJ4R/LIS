@@ -8,6 +8,8 @@ class EventRepeatPolicy(DescriptiveEnum):
     Enum containing all event repetition modes
     """
     NoRepeat = auto()
+    QuarterHourly = auto()
+    HalfHourly = auto()
     Hourly = auto()
     Daily = auto()
     Weekly = auto()
