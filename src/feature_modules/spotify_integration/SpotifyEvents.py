@@ -47,3 +47,11 @@ class SpotifyGetCurrentTrackResponseEvent(BaseEvent):
     """
     def __init__(self, playback_state: SpotifyPlayerState):
         self.playback_state = playback_state
+
+    def __eq__(self, other):
+        if isinstance(other, SpotifyGetCurrentTrackResponseEvent):
+            return self.playback_state == other.playback_state
+        return False
+
+    def __hash__(self):
+        return hash(self.playback_state)

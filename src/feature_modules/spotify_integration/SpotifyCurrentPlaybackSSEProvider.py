@@ -19,6 +19,7 @@ class SpotifyCurrentPlaybackSSEProvider:
 
     def __init__(self, put_event: Callable):
         self.put_event = put_event
+        self.last_event = None
         asyncio.create_task(self._spotify_playback_provider_task())
 
     async def _spotify_playback_provider_task(self):
@@ -33,6 +34,9 @@ class SpotifyCurrentPlaybackSSEProvider:
             await self.put_event(SpotifyGetCurrentTrackEvent())
             event: SpotifyGetCurrentTrackResponseEvent = await response_receiver.wait_for_event(
                 unregister_after_receive=False)
-            self.log.debug("Received response - forwarding to SSE")
-            await self.put_event(SSEDataEvent(SPOTIFY_CURRENT_SSE_ENDPOINT, event.playback_state.to_json()))
+            self.log.debug(event.playback_state)
+            if event != self.last_event:
+                self.log.debug("Playback differs => forwarding to SSE")
+                await self.put_event(SSEDataEvent(SPOTIFY_CURRENT_SSE_ENDPOINT, event.playback_state.to_json()))
+                self.last_event = event
             await asyncio.sleep(SPOTIFY_SECONDS_BETWEEN_PLAYBACK_STATE_QUERIES)

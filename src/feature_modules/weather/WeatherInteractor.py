@@ -27,7 +27,7 @@ class WeatherInteractor(EventReceiver):
     """
     Class responsible for interacting with the openweathermap api.
     """
-    log = get_logger(__name__, "DEBUG")
+    log = get_logger(__name__)
 
     def __init__(self, put_event: Callable, storage: StorageManager):
         super().__init__()
@@ -70,7 +70,7 @@ class WeatherInteractor(EventReceiver):
             "appid": str(self.storage.get(API_TOKEN_FIELD, WEATHER_STORAGE_SECTION, "")),
             "units": "metric"
         }
-        self.log.debug("Querying weather with params: " + str(params))
+        self.log.debug(f"Querying weather for lat: " + params["lat"] + ", lon: " + params["lon"])
         return params
 
     async def get_current_weather_data(self):

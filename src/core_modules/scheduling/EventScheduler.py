@@ -8,7 +8,7 @@ from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.ScheduledEvent import ScheduledEvent, EXEC_DATETIME_FORMAT
-from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
+from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent, UnscheduleEventExecutionEvent
 from core_modules.scheduling.scheduling_helper import get_next_execution_time_for_policy
 from core_modules.storage.StorageManager import StorageManager
 
@@ -37,7 +37,7 @@ class EventScheduler(EventReceiver):
         asyncio.create_task(self._scheduling_engine_task())
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
-        return [ScheduleEventExecutionEvent]
+        return [ScheduleEventExecutionEvent, UnscheduleEventExecutionEvent]
 
     def load_persistent_events(self, event_mapping_func: Callable):
         """
@@ -62,7 +62,8 @@ class EventScheduler(EventReceiver):
         :param exec_time: The time the event will be executed at.
         :param scheduled_event: The event to schedule.
         """
-        self.log.info("Scheduling " + str(scheduled_event) + " for execution at " + str(exec_time))
+        self.log.info("Scheduling " + scheduled_event.event_to_exec.get_event_id()
+                      + " for execution at " + str(exec_time))
         if exec_time in self._event_execution_map:
             self._event_execution_map[exec_time].append(scheduled_event)
         else:
@@ -83,9 +84,36 @@ class EventScheduler(EventReceiver):
                                        STORAGE_PERSISTENT_EVENTS_SECTION)
         self._add_event_to_execution_map(exec_time, scheduled_event)
 
+    async def _handle_unscheduling_event(self, unscheduling_event):
+        """
+        Handles an unscheduling event and removes the event in the scheduling map. Also removes all following events
+        and from persistence if wanted.
+        :param unscheduling_event: event to unschedule
+        """
+        self.log.info("Unscheduling event: " + str(unscheduling_event.event_to_remove))
+        removed_scheduled_events = []
+        for exec_time in self._event_execution_map:
+            for scheduled_event in self._event_execution_map[exec_time]:
+                if scheduled_event.event_to_exec == unscheduling_event.event_to_remove:
+                    removed_scheduled_events.append((exec_time, scheduled_event))
+        for removed_event in removed_scheduled_events:
+            self._event_execution_map[removed_event[0]].remove(removed_event[1])
+            self.log.info(
+                f"Removed {removed_event[1]} from execution map ({removed_event[1].event_to_exec.get_event_id()})")
+        if not unscheduling_event.remove_following_events:
+            await self._reschedule_events([ev[1] for ev in removed_scheduled_events])
+        if unscheduling_event.remove_from_persistence:
+            for event in [ev[1] for ev in removed_scheduled_events]:
+                self.log.info("Trying to remove " + str(event.to_obj_rep()) + " from persistence..")
+                self.storage.remove_obj_from_list(event.to_obj_rep(),
+                                                  STORAGE_PERSISTENT_EVENTS_FIELD,
+                                                  STORAGE_PERSISTENT_EVENTS_SECTION)
+
     async def handle_specific_event(self, event: BaseEvent):
         if isinstance(event, ScheduleEventExecutionEvent):
             self._handle_scheduling_event(event)
+        elif isinstance(event, UnscheduleEventExecutionEvent):
+            await self._handle_unscheduling_event(event)
 
     async def _get_events_to_execute_now(self, now: datetime):
         """
@@ -110,10 +138,11 @@ class EventScheduler(EventReceiver):
             await self._reschedule_events(executed_events)
             for event in executed_events:
                 # not called with events_to_schedule to also remove events past their grace period from persistence
-                self.log.info("Trying to remove " + str(event.to_obj_rep()) + " from persistence..")
-                self.storage.remove_obj_from_list(event.to_obj_rep(),
-                                                  STORAGE_PERSISTENT_EVENTS_FIELD,
-                                                  STORAGE_PERSISTENT_EVENTS_SECTION)
+                if event.persist_after_reboot:
+                    self.log.info("Trying to remove " + str(event.to_obj_rep()) + " from persistence..")
+                    self.storage.remove_obj_from_list(event.to_obj_rep(),
+                                                      STORAGE_PERSISTENT_EVENTS_FIELD,
+                                                      STORAGE_PERSISTENT_EVENTS_SECTION)
         return events_to_schedule
 
     async def _reschedule_events(self, executed_events):
@@ -124,7 +153,9 @@ class EventScheduler(EventReceiver):
         for event in executed_events:
             if event.repeat_policy is EventRepeatPolicy.NoRepeat:
                 continue
-            next_exec_time = get_next_execution_time_for_policy(event.exec_time, event.repeat_policy)
+            next_exec_time = event.exec_time
+            while next_exec_time < datetime.now():
+                next_exec_time = get_next_execution_time_for_policy(next_exec_time, event.repeat_policy)
             await self.put_event(
                 ScheduleEventExecutionEvent(next_exec_time, event.event_to_exec, event.persist_after_reboot,
                                             event.repeat_policy, event.grace_period_in_minutes))
