@@ -62,7 +62,8 @@ class EventScheduler(EventReceiver):
         :param exec_time: The time the event will be executed at.
         :param scheduled_event: The event to schedule.
         """
-        self.log.info("Scheduling " + str(scheduled_event) + " for execution at " + str(exec_time))
+        self.log.info("Scheduling " + scheduled_event.event_to_exec.get_event_id()
+                      + " for execution at " + str(exec_time))
         if exec_time in self._event_execution_map:
             self._event_execution_map[exec_time].append(scheduled_event)
         else:
@@ -89,9 +90,6 @@ class EventScheduler(EventReceiver):
         and from persistence if wanted.
         :param unscheduling_event: event to unschedule
         """
-        # Removed from event map
-        # reschedule if wanted
-        # remove from persistence if wanted
         self.log.info("Unscheduling event: " + str(unscheduling_event.event_to_remove))
         removed_scheduled_events = []
         for exec_time in self._event_execution_map:

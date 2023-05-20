@@ -14,7 +14,7 @@ class TemporaryEventReceiver(EventReceiver):
     log = get_logger(__name__)
 
     def __init__(self, put_event: Callable, event_list: list[type(BaseEvent)]):
-        self.log.info("Starting TemporaryEventReceiver for events: " + str(event_list))
+        self.log.debug("Starting TemporaryEventReceiver for events: " + str(event_list))
         super().__init__()
         self.put_event = put_event
         self.event_list = event_list
@@ -24,7 +24,7 @@ class TemporaryEventReceiver(EventReceiver):
         The TemporaryEventReceiver needs to be started manually to ensure that the registration with the event receiver
         goes through before the event it is waiting on is distributed to prevent "losing" the event.
         """
-        self.log.info("Registering with EventDistributor...")
+        self.log.debug("Registering with EventDistributor...")
         await self.put_event(RegisterTempReceiverEvent(self))
 
     async def _handle_events_task(self):
@@ -49,7 +49,7 @@ class TemporaryEventReceiver(EventReceiver):
         self.log.debug("Waiting for Event...")
         event = await self._event_queue.get()
         if unregister_after_receive:
-            self.log.info("Unregistering with EventDistributor...")
+            self.log.debug("Unregistering with EventDistributor...")
             await self.put_event(UnregisterTempReceiverEvent(self))
         return event
 

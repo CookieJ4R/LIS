@@ -34,12 +34,9 @@ class SpotifyCurrentPlaybackSSEProvider:
             await self.put_event(SpotifyGetCurrentTrackEvent())
             event: SpotifyGetCurrentTrackResponseEvent = await response_receiver.wait_for_event(
                 unregister_after_receive=False)
-            self.log.debug("Received response - forwarding to SSE")
+            self.log.debug(event.playback_state)
             if event != self.last_event:
-                if self.last_event is not None:
-                    self.log.debug(event == self.last_event)
-                    self.log.debug(event.playback_state)
-                    self.log.debug(self.last_event.playback_state)
+                self.log.debug("Playback differs => forwarding to SSE")
                 await self.put_event(SSEDataEvent(SPOTIFY_CURRENT_SSE_ENDPOINT, event.playback_state.to_json()))
                 self.last_event = event
             await asyncio.sleep(SPOTIFY_SECONDS_BETWEEN_PLAYBACK_STATE_QUERIES)

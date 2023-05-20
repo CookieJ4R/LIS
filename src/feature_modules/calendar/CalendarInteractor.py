@@ -40,6 +40,8 @@ CALENDAR_COMPONENT_RRULE = "rrule"
 CALENDAR_COMPONENT_RRULE_FREQ = "FREQ"
 CALENDAR_COMPONENT_RRULE_UNTIL = "UNTIL"
 
+CALENDAR_SSE_UPDATE_ENDPOINT = "calendar/update"
+
 
 class CalendarInteractor(EventReceiver):
     """
@@ -92,7 +94,7 @@ class CalendarInteractor(EventReceiver):
                 self.current_expire_refresh_event = event_expire_to_schedule
                 # output signal to SSE for client to trigger a re-fetch
                 # no calendar events are sent over sse as the client should decide how many events to fetch
-                await self.put_event(SSEDataEvent("calendar/update", ""))
+                await self.put_event(SSEDataEvent(CALENDAR_SSE_UPDATE_ENDPOINT, ""))
         self.last_fetched_events = events
 
     async def schedule_auto_refresh_task(self):
