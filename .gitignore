@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-config
+config/lis_data.toml
 # C extensions
 *.so
 
