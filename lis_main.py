@@ -1,6 +1,7 @@
 """
 Main file for running this LIS-System
 """
+import argparse
 import asyncio
 
 from core_modules.eventing.EventDistributor import EventDistributor
@@ -37,7 +38,13 @@ async def main():
     """
     Main Coroutine that gets run on the event loop.
     """
-    storage = StorageManager("lis_data.toml")
+    argument_parser = argparse.ArgumentParser()
+    argument_parser.add_argument("-c", "--config", type=str, help="The path to the folder containing the config files",
+                                 required=True)
+
+    args = argument_parser.parse_args()
+
+    storage = StorageManager(args.config + "/lis_data.toml")
 
     event_distributor = EventDistributor()
 

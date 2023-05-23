@@ -21,8 +21,8 @@ class RestServer:
     log = get_logger(__name__)
 
     def __init__(self, put_event: Callable):
-        self.server = web.Application([(r'/sse', SSERequestHandler, {"put_event": put_event}),
-                                       (r'/.*', RestOmniRequestHandler,
+        self.server = web.Application([(r'/v1/sse', SSERequestHandler, {"put_event": put_event}),
+                                       (r'/v1/.*', RestOmniRequestHandler,
                                         {"request_handle_callable": self.handle_request})])
         self.endpoint_map = {
             REST_METHOD_GET: {},
@@ -64,7 +64,7 @@ class RestServer:
         self.log.info("Starting RestServer on http://" + host + ":" + str(port))
         self.server.listen(port, host)
 
-    async def handle_request(self, path, args, method):
+    async def handle_request(self, path: str, args, method):
         """
         Method for handling all http requests. Will call the registered handler for the
         corresponding method and endpoint.
@@ -75,6 +75,10 @@ class RestServer:
         405 (Method not allowed) if an endpoint was called that has a registered handler under
         a different method or 404 if no registered handler was found for this endpoint.
         """
+        if path.startswith("/v1"):
+            path = path.replace("/v1", "")
+        else:
+            return 404, ""
         if method in self.endpoint_map:
             registered_api_endpoints = self.endpoint_map[method]
             if self._is_endpoint_path_registered_for_method(path, method):
