@@ -3,12 +3,15 @@ services:
   lis:
     container_name: backend
     build: .
-    init: true
+    # image: IMAGE
     command: python3 lis_main.py -c "/lis/config" # defines the config folder to use - must match the one defined under volumes
+    restart: always
     ports:
       - "5001:5000" # port must match the port specified in lis_data.toml
     volumes:
-      - C:/Users/Kevin/Desktop/test:/lis/config # mounts the config folder containing the lis_data.toml into the docker container
+      - /home/lis/LIS/config:/lis/config # mounts the config folder containing the lis_data.toml into the docker container
+    environment:
+      - TZ=Europe/Berlin
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lis.rule=(Host(`127.0.0.1`) && PathPrefix(`/v1`))"
@@ -18,8 +21,12 @@ services:
   lis-web-frontend:
     container_name: frontend
     build: ../LIS-UI/.
+    # image: IMAGE
+    restart: always
     ports:
       - "5000:80"
+    environment:
+      - TZ=Europe/Berlin
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lis-web-frontend.rule=Host(`127.0.0.1`)"
@@ -32,10 +39,11 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedByDefault=false"
       - "--entrypoints.web.address=:80"
-    labels:
-        - "traefik.enable=false"
+    restart: always
     ports:
       - "80:80"
       - "8080:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "traefik.enable=false"
