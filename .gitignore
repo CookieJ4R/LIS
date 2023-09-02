@@ -2,8 +2,8 @@
 __pycache__/
 *.py[cod]
 *$py.class
-lis.env
-lis_data.toml
+
+config/lis_data.toml
 # C extensions
 *.so
 
