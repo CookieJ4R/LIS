@@ -8,6 +8,7 @@ from core_modules.eventing.EventDistributor import EventDistributor
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.PingApi import PingApi
 from core_modules.rest.RestServer import RestServer
+from core_modules.rest.SessionManager import SessionManager
 from core_modules.rest.SysInfoApi import SysInfoApi
 from core_modules.scheduling.EventScheduler import EventScheduler
 from core_modules.scheduling.SchedulingApi import SchedulingApi
@@ -46,16 +47,18 @@ async def main():
 
     storage = StorageManager(args.config + "/lis_data.toml")
 
+    session_manager = SessionManager()
+
     event_distributor = EventDistributor()
 
     event_scheduler = EventScheduler(storage, event_distributor.put_internal)
 
     event_distributor.register_event_receivers([
         event_scheduler,
-        HueInteractor(storage, event_distributor.put_internal),
-        SpotifyInteractor(event_distributor.put_internal, storage),
-        WeatherInteractor(event_distributor.put_internal, storage),
-        CalendarInteractor(event_distributor.put_internal, storage)
+        HueInteractor(event_distributor.put_internal, storage, session_manager),
+        SpotifyInteractor(event_distributor.put_internal, storage, session_manager),
+        WeatherInteractor(event_distributor.put_internal, storage, session_manager),
+        CalendarInteractor(event_distributor.put_internal, storage, session_manager)
     ])
 
     event_scheduler.load_persistent_events(event_distributor.map_to_schedulable_event)

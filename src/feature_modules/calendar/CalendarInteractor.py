@@ -3,7 +3,6 @@ from datetime import datetime, date, time, timezone
 from enum import auto, Enum
 from typing import Callable
 
-import aiohttp
 import tzlocal
 from icalendar import Calendar
 
@@ -11,6 +10,7 @@ from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServerEvents import SSEDataEvent
+from core_modules.rest.SessionManager import SessionManager
 from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent, UnscheduleEventExecutionEvent
 from core_modules.scheduling.scheduling_helper import get_next_week_for_date, get_next_day_for_date, \
@@ -49,13 +49,13 @@ class CalendarInteractor(EventReceiver):
     """
     log = get_logger(__name__)
 
-    def __init__(self, put_event: Callable, storage: StorageManager):
+    def __init__(self, put_event: Callable, storage: StorageManager, session_manager: SessionManager):
         super().__init__()
         self.put_event = put_event
         self.calendar_url = storage.get(CALENDAR_URL_FIELD, CALENDAR_SECTION)
         self.last_fetched_events = []
         self.current_expire_refresh_event = None
-        self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
+        self.session_manager = session_manager
         asyncio.create_task(self.fetch_and_schedule_refresh_task())
         asyncio.create_task(self.schedule_auto_refresh_task())
 
@@ -213,7 +213,7 @@ class CalendarInteractor(EventReceiver):
         """
         events = []
         tmp_events = []
-        async with await self.session.get(self.calendar_url) as response:
+        async with await self.session_manager.get_session().get(self.calendar_url) as response:
             if response.status == 200:
                 cal = Calendar.from_ical(await response.text())
                 for component in cal.walk():

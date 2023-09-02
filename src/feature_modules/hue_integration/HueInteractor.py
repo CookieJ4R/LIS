@@ -1,11 +1,10 @@
 from typing import Callable
 
-import aiohttp
-
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET
+from core_modules.rest.SessionManager import SessionManager
 from core_modules.storage.StorageManager import StorageManager
 from feature_modules.hue_integration.HueConfig import HueConfig
 from feature_modules.hue_integration.HueEvents import HueGetLampsEvent, HueGetLampsResponseEvent, HueLampSetStateEvent
@@ -25,14 +24,12 @@ class HueInteractor(EventReceiver):
 
     log = get_logger(__name__)
 
-    def __init__(self, storage: StorageManager, put_event: Callable):
+    def __init__(self, put_event: Callable, storage: StorageManager, session_manager: SessionManager):
         super().__init__()
         self.put_event = put_event
         self.hue_config = HueConfig(storage.get(FIELD_HUE_BRIDGE_IP, SECTION_HEADER_HUE),
                                     storage.get(FIELD_HUE_CLIENT_KEY, SECTION_HEADER_HUE))
-        self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False),
-                                             headers={"hue-application-key": self.hue_config.client_key,
-                                                      "Content-Type": "application/json"})
+        self.session_manager = session_manager
         self.hue_sse_receiver = HueSSEReceiver(put_event, self.hue_config)
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
@@ -56,12 +53,16 @@ class HueInteractor(EventReceiver):
         """
         self.log.debug("Sending " + method + " request to Hue-Bridge endpoint " + str(endpoint) + " with " + str(data))
         if method == REST_METHOD_PUT:
-            async with await self.session.put('https://' + self.hue_config.bridge_ip + "/clip/v2/" +
-                                              endpoint, data=data) as response:
+            async with await self.session_manager.get_session().put(
+                    'https://' + self.hue_config.bridge_ip + "/clip/v2/" +
+                    endpoint, data=data, headers={"hue-application-key": self.hue_config.client_key,
+                                                  "Content-Type": "application/json"}) as response:
                 return response.status, await response.json()
         elif method == REST_METHOD_GET:
-            async with await self.session.get('https://' + self.hue_config.bridge_ip + "/clip/v2/" +
-                                              endpoint) as response:
+            async with await self.session_manager.get_session().get(
+                    'https://' + self.hue_config.bridge_ip + "/clip/v2/" +
+                    endpoint, headers={"hue-application-key": self.hue_config.client_key,
+                                       "Content-Type": "application/json"}) as response:
                 return response.status, await response.json()
 
     async def set_state_of_lamp(self, lamp_id: str, on: bool):
