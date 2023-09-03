@@ -29,7 +29,9 @@ The "big" features I want to implement at the very least and the topics I want t
 * [X] Clock (to provide Server-Time offset to the client)
 * [X] Weather
 * [X] Calendar
-* [ ] CI/CD + Containerization
+* [X] Containerization
+* [ ] Soundfile playback
+* [ ] Routine / Scenario event sequences
 
 
 The features currently implemented are:
@@ -43,3 +45,4 @@ The features currently implemented are:
 * Scheduling system to schedule event for later execution (~accurate to the minute) with support for persistent events that survive a system reboot as well as a grace period system that enables critical persistent events to be executed even if their scheduled execution time has long passed after a system-outage. It also supports automatic re-scheduling based on a repetition policy (e.g. hourly or daily).
 * Weather data based on the provided longitude and latitude based on the Open-Weathermap API (updates every full hour)
 * Calendar integration by using ical files available via a URL.
+* Containerization for backend and Web-Frontend to make it runnable on a raspberry pi via docker compose.
