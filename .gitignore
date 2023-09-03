@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 config/lis_data.toml
+config/lis_sound_table.json
 # C extensions
 *.so
 

@@ -1,0 +1,21 @@
+{
+  "sounds": [
+    {
+      "id": "ID1",
+      "path": "ABSOLUTE_PATH"
+    },
+    {
+      "id": "ID2",
+      "path": "ABSOLUTE_PATH"
+    }
+  ],
+  "sound_pools": [
+    {
+      "id": "POOL1",
+      "sound_ids": [
+        "ID1",
+        "ID2"
+      ]
+    }
+  ]
+}
