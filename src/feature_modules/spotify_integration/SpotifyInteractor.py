@@ -1,11 +1,11 @@
 from typing import Callable
 
-import aiohttp
 
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServer import REST_METHOD_PUT, REST_METHOD_GET, REST_METHOD_POST
+from core_modules.rest.SessionManager import SessionManager
 from core_modules.storage.StorageManager import StorageManager
 from feature_modules.spotify_integration.SpotifyCurrentPlaybackSSEProvider import SpotifyCurrentPlaybackSSEProvider
 from feature_modules.spotify_integration.SpotifyEvents import SpotifyPausePlaybackEvent, \
@@ -30,11 +30,11 @@ class SpotifyInteractor(EventReceiver):
     """
     log = get_logger(__name__)
 
-    def __init__(self, put_event: Callable, storage: StorageManager):
+    def __init__(self, put_event: Callable, storage: StorageManager, session_manager: SessionManager):
         super().__init__()
         self.put_event = put_event
         self.storage = storage
-        self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
+        self.session_manager = session_manager
         self.current_playback_sse_provider = SpotifyCurrentPlaybackSSEProvider(put_event)
 
     def fetch_events_to_register(self) -> list[type[BaseEvent]]:
@@ -150,16 +150,16 @@ class SpotifyInteractor(EventReceiver):
         """
         self.log.debug("Sending " + method + " request to " + str(url) + " with " + str(data))
         if method == REST_METHOD_PUT:
-            async with await self.session.put(url, headers=headers, data=data) as response:
+            async with await self.session_manager.get_session().put(url, headers=headers, data=data) as response:
                 return response.status, None
         elif method == REST_METHOD_GET:
-            async with await self.session.get(url, headers=headers) as response:
+            async with await self.session_manager.get_session().get(url, headers=headers) as response:
                 json = None
                 if response.status == 200:
                     json = await response.json()
                 return response.status, json
         elif method == REST_METHOD_POST:
-            async with await self.session.post(url, headers=headers, data=data) as response:
+            async with await self.session_manager.get_session().post(url, headers=headers, data=data) as response:
                 if response.content_type == "application/json":
                     self.log.debug(await response.json())
                     return response.status, await response.json()

@@ -1,12 +1,11 @@
 import asyncio
 from typing import Callable
 
-import aiohttp
-
 from core_modules.eventing.BaseEvent import BaseEvent
 from core_modules.eventing.EventReceiver import EventReceiver
 from core_modules.logging.lis_logging import get_logger
 from core_modules.rest.RestServerEvents import SSEDataEvent
+from core_modules.rest.SessionManager import SessionManager
 from core_modules.scheduling.EventRepeatPolicy import EventRepeatPolicy
 from core_modules.scheduling.SchedulingEvents import ScheduleEventExecutionEvent
 from core_modules.scheduling.scheduling_helper import get_next_full_hour
@@ -29,11 +28,11 @@ class WeatherInteractor(EventReceiver):
     """
     log = get_logger(__name__)
 
-    def __init__(self, put_event: Callable, storage: StorageManager):
+    def __init__(self, put_event: Callable, storage: StorageManager, session_manager: SessionManager):
         super().__init__()
         self.put_event = put_event
         self.storage = storage
-        self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False))
+        self.session_manager = session_manager
 
         self.cur_weather_data = None
         asyncio.create_task(self._initial_fetch_task())
@@ -79,6 +78,6 @@ class WeatherInteractor(EventReceiver):
         representation.
         """
         params = self._get_weather_params()
-        async with await self.session.get(BASE_WEATHER_URL, params=params) as response:
+        async with await self.session_manager.get_session().get(BASE_WEATHER_URL, params=params) as response:
             if response.content_type == "application/json":
                 self.cur_weather_data = WeatherData.from_json(await response.json())
