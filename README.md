@@ -30,7 +30,7 @@ The "big" features I want to implement at the very least and the topics I want t
 * [X] Weather
 * [X] Calendar
 * [X] Containerization
-* [ ] Soundfile playback
+* [X] Soundfile playback (currently only .wav is confirmed to be working)
 * [ ] Routine / Scenario event sequences
 
 
@@ -46,3 +46,4 @@ The features currently implemented are:
 * Weather data based on the provided longitude and latitude based on the Open-Weathermap API (updates every full hour)
 * Calendar integration by using ical files available via a URL.
 * Containerization for backend and Web-Frontend to make it runnable on a raspberry pi via docker compose.
+* Soundplayer that allows playing a specific file or a random file from a defined pool for more variance.
