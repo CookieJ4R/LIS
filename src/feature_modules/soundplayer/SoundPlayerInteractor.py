@@ -1,7 +1,9 @@
 import platform
 import subprocess
 
-import winsound
+if platform.system() == "Windows":
+    import winsound
+
 from typing import Callable
 
 from core_modules.eventing.BaseEvent import BaseEvent
@@ -64,4 +66,4 @@ class SoundPlayerInteractor(EventReceiver):
         if platform.system() == "Windows":
             winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
         else:
-            subprocess.run(["paplay", sound_path])
+            subprocess.Popen(["aplay", sound_path])

@@ -5,6 +5,7 @@ __pycache__/
 
 config/lis_data.toml
 config/lis_sound_table.json
+assets/sound_files/
 # C extensions
 *.so
 

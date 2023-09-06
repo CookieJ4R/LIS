@@ -10,14 +10,16 @@ services:
       - "5001:5000" # port must match the port specified in lis_data.toml
     volumes:
       - /home/lis/LIS/config:/lis/config # mounts the config folder containing the lis_data.toml into the docker container
+      - /home/lis/LIS/assets:/lis/assets # mounts the asset folder containing sound files and other assets
     environment:
       - TZ=Europe/Berlin
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.lis.rule=(Host(`127.0.0.1`) && PathPrefix(`/v1`))"
       - "traefik.http.routers.lis.entrypoints=web"
-
-  # Frontend service(s)
+    devices:
+      - /dev/snd
+      # Frontend service(s)
   lis-web-frontend:
     container_name: frontend
     build: ../LIS-UI/.
